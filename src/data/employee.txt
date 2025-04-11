@@ -1,0 +1,8 @@
+maNV=21103201
+hoTen=Nguyễn Trà Mi
+ngaySinh=10-10-2003
+gioiTinh=Nữ
+email=nguyentrami1003@gmail.com
+sdt=0987654321
+chucVu=Quản lý
+
