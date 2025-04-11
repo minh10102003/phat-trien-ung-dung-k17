@@ -6,8 +6,8 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.net.URL;
 
-public class ChuyenTau extends JPanel {
-    public ChuyenTau() {
+public class Tau extends JPanel {
+    public Tau() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
 
@@ -146,6 +146,8 @@ public class ChuyenTau extends JPanel {
             super(checkBox);
             button = new JButton("Chọn ghế");
             button.setOpaque(true);
+            button.setContentAreaFilled(true);
+            button.setBorderPainted(false);
             button.addActionListener(e -> fireEditingStopped());
         }
 

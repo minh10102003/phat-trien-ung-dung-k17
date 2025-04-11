@@ -65,6 +65,12 @@ public class ChuyenTau {
 	public void setTau(Tau tau) {
 		this.tau = tau;
 	}
+
+	@Override
+	public String toString() {
+		return "ChuyenTau [maChuyenTau=" + maChuyenTau + ", tenChuyenTau=" + tenChuyenTau + ", gaDi=" + gaDi
+				+ ", gaDen=" + gaDen + ", ngayDi=" + ngayDi + ", gioKhoiHanh=" + gioKhoiHanh + ", tau=" + tau + "]";
+	}
 	
 	
 }

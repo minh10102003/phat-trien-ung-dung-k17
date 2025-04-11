@@ -6,3 +6,4 @@
 21106789,Đặng Thị Dương,30/04/2003,Nữ,0956789012,Nhân viên
 21103289,Trần Văn Banh,22/06/1998,Nam,0967890123,Manager
 21103456,Nguyễn Trường Giang,10/12/2003,Nam,0912101003,Nhân viên21103259,Nguyễn Thị Thảo,25/09/2003,Nữ,0912101003,Nhân viên
+21103201,Nguyễn Triệu Minh,10/10/2003,Nam,0912345678,Nhân viên

@@ -6,11 +6,11 @@ import java.util.List;
 public class HoaDon {
     private String maHD;
     private Date ngayLapHD;
-    private NhanVien nhanVien;
+    private Entity_NhanVien nhanVien;
     private HanhKhach hanhKhach;
     private List<CT_HoaDon> chiTietHoaDon;
     
-	public HoaDon(String maHD, Date ngayLapHD, NhanVien nhanVien, HanhKhach hanhKhach, List<CT_HoaDon> chiTietHoaDon) {
+	public HoaDon(String maHD, Date ngayLapHD, Entity_NhanVien nhanVien, HanhKhach hanhKhach, List<CT_HoaDon> chiTietHoaDon) {
 		super();
 		this.maHD = maHD;
 		this.ngayLapHD = ngayLapHD;
@@ -31,10 +31,10 @@ public class HoaDon {
 	public void setNgayLapHD(Date ngayLapHD) {
 		this.ngayLapHD = ngayLapHD;
 	}
-	public NhanVien getNhanVien() {
+	public Entity_NhanVien getNhanVien() {
 		return nhanVien;
 	}
-	public void setNhanVien(NhanVien nhanVien) {
+	public void setNhanVien(Entity_NhanVien nhanVien) {
 		this.nhanVien = nhanVien;
 	}
 	public HanhKhach getHanhKhach() {

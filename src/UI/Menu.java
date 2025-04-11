@@ -23,6 +23,8 @@ public class Menu extends JFrame {
 	private CardLayout cardLayout; // Quản lý chuyển màn hình
 	// Map chứa các nút điều hướng để dễ thay đổi trạng thái
 	private Map<String, JButton> navButtons = new HashMap<>();
+	private String userRole;
+    private String username;
 
 	public Menu() {
 		super("Menu");
@@ -80,12 +82,11 @@ public class Menu extends JFrame {
 		sidebar.add(adminPanel, sgbc);
 
 		// Các nút điều hướng
-		String[] buttonNames = { "Trang chủ", "Vé tàu", "Tàu", "Chuyến tàu", "Hóa đơn", "Nhân viên", "Thống kê",
+		String[] buttonNames = { "Trang chủ", "Vé tàu", "Tàu", "Hóa đơn", "Nhân viên", "Thống kê",
 				"Đăng xuất" };
-		String[] iconPaths = { "src/images/home.png", "src/images/train-ticket.png", "src/images/train.png",
-				"src/images/railroad.png", "src/images/receipt.png", "src/images/employee.png",
+		String[] iconPaths = { "src/images/home.png", "src/images/train-ticket.png", "src/images/train.png", "src/images/receipt.png", "src/images/employee.png",
 				"src/images/statistics.png", "src/images/logout.png" };
-		Color[] buttonColors = { new Color(217, 217, 217), new Color(217, 217, 217), new Color(217, 217, 217),
+		Color[] buttonColors = { new Color(217, 217, 217), new Color(217, 217, 217),
 				new Color(217, 217, 217), new Color(217, 217, 217), new Color(217, 217, 217), new Color(217, 217, 217),
 				new Color(217, 217, 217) };
 
@@ -190,19 +191,19 @@ public class Menu extends JFrame {
 					cardLayout.show(mainContent, "TrangChu");
 					navButtons.get("Trang chủ").setEnabled(false);
 					navButtons.get("Nhân viên").setEnabled(true);
-					navButtons.get("Chuyến tàu").setEnabled(true); // Bật lại nút "Chuyến tàu" khi về Trang chủ
+					navButtons.get("Tàu").setEnabled(true); // Bật lại nút "Chuyến tàu" khi về Trang chủ
 					navButtons.get("Hóa đơn").setEnabled(true);
 				} else if (btnName.equals("Nhân viên")) {
 					cardLayout.show(mainContent, "NhanVien");
 					navButtons.get("Trang chủ").setEnabled(true);
 					navButtons.get("Nhân viên").setEnabled(false);
-					navButtons.get("Chuyến tàu").setEnabled(true); // Bật lại nút "Chuyến tàu" khi vào Quản lý nhân viên
+					navButtons.get("Tàu").setEnabled(true); // Bật lại nút "Chuyến tàu" khi vào Quản lý nhân viên
 					navButtons.get("Hóa đơn").setEnabled(true);
-				} else if (btnName.equals("Chuyến tàu")) { // Thêm sự kiện cho "Chuyến tàu"
-					cardLayout.show(mainContent, "ChuyenTau");
+				} else if (btnName.equals("Tàu")) { // Thêm sự kiện cho "Chuyến tàu"
+					cardLayout.show(mainContent, "Tau");
 					navButtons.get("Trang chủ").setEnabled(true);
 					navButtons.get("Nhân viên").setEnabled(true);
-					navButtons.get("Chuyến tàu").setEnabled(false); // Vô hiệu hóa nút "Chuyến tàu" khi đang ở màn hình
+					navButtons.get("Tàu").setEnabled(false); // Vô hiệu hóa nút "Chuyến tàu" khi đang ở màn hình
 																	// này
 					navButtons.get("Hóa đơn").setEnabled(true);
 				} else if (btnName.equals("Hóa đơn")) {
@@ -210,7 +211,7 @@ public class Menu extends JFrame {
 					navButtons.get("Trang chủ").setEnabled(true);
 					navButtons.get("Hóa đơn").setEnabled(false);
 					navButtons.get("Nhân viên").setEnabled(true);
-					navButtons.get("Chuyến tàu").setEnabled(true);
+					navButtons.get("Tàu").setEnabled(true);
 				}
 			});
 
@@ -238,8 +239,8 @@ public class Menu extends JFrame {
 		mainContent.add(NhanVienPanel, "NhanVien");
 
 		// Màn hình "Chuyến tàu"
-		ChuyenTau chuyenTauPanel = new ChuyenTau(); // Thêm màn hình Chuyến tàu
-		mainContent.add(chuyenTauPanel, "ChuyenTau");
+		Tau tauPanel = new Tau(); // Thêm màn hình Chuyến tàu
+		mainContent.add(tauPanel, "Tau");
 
 		// Màn hình "Hoa don"
 		HoaDon hoaDonPanel = new HoaDon();
@@ -513,6 +514,10 @@ public class Menu extends JFrame {
 	    btnTim.setBackground(new Color(70, 130, 180));
 	    btnTim.setForeground(Color.WHITE);
 	    infoContentPanel.add(btnTim, ip);
+	    
+	    btnTim.setOpaque(true);
+	    btnTim.setContentAreaFilled(true);
+	    btnTim.setBorderPainted(false);
 	    
 	    // Thêm header và content vào infoPanel
 	    infoPanel.add(infoHeaderPanel, BorderLayout.NORTH);
