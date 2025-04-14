@@ -1,423 +1,166 @@
 package UI;
 
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
+import DAO.DAO_NhanVien;
+import entity.Entity_NhanVien;
 
-import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
+import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.util.List;
 
 public class NhanVien extends JPanel {
-    private JTextField txtTimKiem;
-    private JTable tableNhanVien;
-    
+    private JTable table;
+    private DefaultTableModel model;
+
     public NhanVien() {
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout());
 
-        //Thanh công cụ (các nút chức năng) phía trên
-        JPanel panelToolBar = new JPanel();
-        FlowLayout flowLayout = (FlowLayout) panelToolBar.getLayout();
-        flowLayout.setAlignment(FlowLayout.LEFT);
-        add(panelToolBar, BorderLayout.NORTH);
-
-        JButton btnThem = new JButton("Thêm nhân viên");
-        btnThem.setForeground(new Color(255, 255, 255));
-        btnThem.setBackground(new Color(0, 64, 128));
-        panelToolBar.add(btnThem);
-        btnThem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JDialog dialog = new JDialog();
-                dialog.setTitle("Thêm Nhân Viên");
-                dialog.setSize(400, 300);
-                dialog.setLayout(new FlowLayout());
-
-                JLabel lblMaNV = new JLabel("Mã NV:");
-                JTextField txtMaNV = new JTextField(10);
-                JLabel lblHoTen = new JLabel("Họ tên:");
-                JTextField txtHoTen = new JTextField(15);
-                JLabel lblNgaySinh = new JLabel("Ngày sinh:");
-                JTextField txtNgaySinh = new JTextField(10);
-                JLabel lblGioiTinh = new JLabel("Giới tính:");
-                JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ"});
-                JLabel lblSDT = new JLabel("SĐT:");
-                JTextField txtSDT = new JTextField(10);
-                JLabel lblViTri = new JLabel("Vị trí:");
-                JTextField txtViTri = new JTextField(15);
-
-                JButton btnLuu = new JButton("Lưu");
-                JButton btnHuy = new JButton("Hủy");
-
-                dialog.add(lblMaNV);
-                dialog.add(txtMaNV);
-                dialog.add(lblHoTen);
-                dialog.add(txtHoTen);
-                dialog.add(lblNgaySinh);
-                dialog.add(txtNgaySinh);
-                dialog.add(lblGioiTinh);
-                dialog.add(cbGioiTinh);
-                dialog.add(lblSDT);
-                dialog.add(txtSDT);
-                dialog.add(lblViTri);
-                dialog.add(txtViTri);
-                dialog.add(btnLuu);
-                dialog.add(btnHuy);
-
-                btnLuu.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String maNV = txtMaNV.getText().trim();
-                        String hoTen = txtHoTen.getText().trim();
-                        String ngaySinh = txtNgaySinh.getText().trim();
-                        String gioiTinh = cbGioiTinh.getSelectedItem().toString();
-                        String sdt = txtSDT.getText().trim();
-                        String viTri = txtViTri.getText().trim();
-
-                        if (maNV.isEmpty() || hoTen.isEmpty() || ngaySinh.isEmpty() || sdt.isEmpty() || viTri.isEmpty()) {
-                            JOptionPane.showMessageDialog(dialog, "Vui lòng nhập đầy đủ thông tin!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-
-                        try (BufferedWriter writer = new BufferedWriter(new FileWriter("src/data/nhanvien.txt", true))) {
-                            writer.write(maNV + "," + hoTen + "," + ngaySinh + "," + gioiTinh + "," + sdt + "," + viTri);
-                            writer.newLine();
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                            JOptionPane.showMessageDialog(dialog, "Lỗi khi ghi vào file!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-
-                        DefaultTableModel model = (DefaultTableModel) tableNhanVien.getModel();
-                        model.addRow(new Object[]{maNV, hoTen, ngaySinh, gioiTinh, sdt, viTri});
-                        JOptionPane.showMessageDialog(dialog, "Thêm nhân viên thành công!");
-                        dialog.dispose();
-                    }
-                });
-
-                btnHuy.addActionListener(e1 -> dialog.dispose());
-
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
-            }
-        });
-
-        JButton btnXoa = new JButton("Xóa");
-        btnXoa.setForeground(new Color(255, 255, 255));
-        btnXoa.setBackground(new Color(0, 64, 128));
-        panelToolBar.add(btnXoa);
-        btnXoa.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = tableNhanVien.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(null, "Vui lòng chọn nhân viên cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                int confirm = JOptionPane.showConfirmDialog(null, "Bạn có chắc chắn muốn xóa nhân viên này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-                if (confirm != JOptionPane.YES_OPTION) {
-                    return;
-                }
-
-                DefaultTableModel model = (DefaultTableModel) tableNhanVien.getModel();
-                String maNV = model.getValueAt(selectedRow, 0).toString(); // Lấy mã nhân viên
-
-                // Xóa khỏi bảng
-                model.removeRow(selectedRow);
-
-                // Xóa khỏi file employee_detail.txt
-                try {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("src/data/nhanvien.txt"), "UTF-8"));
-                    StringBuilder newContent = new StringBuilder();
-                    String line;
-                    
-                    while ((line = reader.readLine()) != null) {
-                        String[] data = line.split(",");
-                        if (!data[0].trim().equals(maNV)) { // Chỉ giữ lại nhân viên không bị xóa
-                            newContent.append(line).append("\n");
-                        }
-                    }
-                    reader.close();
-
-                    // Ghi lại file sau khi xóa
-                    BufferedWriter writer = new BufferedWriter(new FileWriter("src/data/nhanvien.txt"));
-                    writer.write(newContent.toString());
-                    writer.close();
-
-                    JOptionPane.showMessageDialog(null, "Xóa nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Lỗi khi cập nhật file!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
+        JPanel toolBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnThem = new JButton("Thêm");
         JButton btnSua = new JButton("Sửa");
-        btnSua.setForeground(new Color(255, 255, 255));
-        btnSua.setBackground(new Color(0, 64, 128));
-        panelToolBar.add(btnSua);
-        btnSua.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = tableNhanVien.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(null, "Vui lòng chọn nhân viên cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                DefaultTableModel model = (DefaultTableModel) tableNhanVien.getModel();
-                
-                // Lấy thông tin nhân viên từ bảng
-                String maNV = model.getValueAt(selectedRow, 0).toString();
-                String hoTen = model.getValueAt(selectedRow, 1).toString();
-                String ngaySinh = model.getValueAt(selectedRow, 2).toString();
-                String gioiTinh = model.getValueAt(selectedRow, 3).toString();
-                String sdt = model.getValueAt(selectedRow, 4).toString();
-                String viTri = model.getValueAt(selectedRow, 5).toString();
-
-                // Hiển thị Dialog sửa thông tin
-                JDialog dialog = new JDialog();
-                dialog.setTitle("Sửa Thông Tin Nhân Viên");
-                dialog.setSize(400, 300);
-                dialog.setLayout(new FlowLayout());
-
-                JLabel lblMaNV = new JLabel("Mã NV:");
-                JTextField txtMaNV = new JTextField(maNV, 10);
-                txtMaNV.setEnabled(false); // Không cho sửa mã nhân viên
-                JLabel lblHoTen = new JLabel("Họ tên:");
-                JTextField txtHoTen = new JTextField(hoTen, 15);
-                JLabel lblNgaySinh = new JLabel("Ngày sinh:");
-                JTextField txtNgaySinh = new JTextField(ngaySinh, 10);
-                JLabel lblGioiTinh = new JLabel("Giới tính:");
-                JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ"});
-                cbGioiTinh.setSelectedItem(gioiTinh);
-                JLabel lblSDT = new JLabel("SĐT:");
-                JTextField txtSDT = new JTextField(sdt, 10);
-                JLabel lblViTri = new JLabel("Vị trí:");
-                JTextField txtViTri = new JTextField(viTri, 15);
-
-                JButton btnCapNhat = new JButton("Cập nhật");
-                JButton btnHuy = new JButton("Hủy");
-
-                dialog.add(lblMaNV);
-                dialog.add(txtMaNV);
-                dialog.add(lblHoTen);
-                dialog.add(txtHoTen);
-                dialog.add(lblNgaySinh);
-                dialog.add(txtNgaySinh);
-                dialog.add(lblGioiTinh);
-                dialog.add(cbGioiTinh);
-                dialog.add(lblSDT);
-                dialog.add(txtSDT);
-                dialog.add(lblViTri);
-                dialog.add(txtViTri);
-                dialog.add(btnCapNhat);
-                dialog.add(btnHuy);
-
-                // Sự kiện cập nhật thông tin
-                btnCapNhat.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newHoTen = txtHoTen.getText().trim();
-                        String newNgaySinh = txtNgaySinh.getText().trim();
-                        String newGioiTinh = cbGioiTinh.getSelectedItem().toString();
-                        String newSDT = txtSDT.getText().trim();
-                        String newViTri = txtViTri.getText().trim();
-
-                        if (newHoTen.isEmpty() || newNgaySinh.isEmpty() || newSDT.isEmpty() || newViTri.isEmpty()) {
-                            JOptionPane.showMessageDialog(dialog, "Vui lòng nhập đầy đủ thông tin!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-
-                        // Cập nhật dữ liệu trong bảng
-                        model.setValueAt(newHoTen, selectedRow, 1);
-                        model.setValueAt(newNgaySinh, selectedRow, 2);
-                        model.setValueAt(newGioiTinh, selectedRow, 3);
-                        model.setValueAt(newSDT, selectedRow, 4);
-                        model.setValueAt(newViTri, selectedRow, 5);
-
-                        // Cập nhật vào file dữ liệu
-                        try {
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("src/data/nhanvien.txt"), "UTF-8"));
-                            StringBuilder newContent = new StringBuilder();
-                            String line;
-                            
-                            while ((line = reader.readLine()) != null) {
-                                String[] data = line.split(",");
-                                if (data[0].trim().equals(maNV)) {
-                                    // Ghi dữ liệu mới thay vì dòng cũ
-                                    newContent.append(maNV).append(",").append(newHoTen).append(",").append(newNgaySinh).append(",")
-                                            .append(newGioiTinh).append(",").append(newSDT).append(",").append(newViTri).append("\n");
-                                } else {
-                                    newContent.append(line).append("\n");
-                                }
-                            }
-                            reader.close();
-
-                            // Ghi lại file sau khi cập nhật
-                            BufferedWriter writer = new BufferedWriter(new FileWriter("src/data/nhanvien.txt"));
-                            writer.write(newContent.toString());
-                            writer.close();
-
-                            JOptionPane.showMessageDialog(dialog, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                            JOptionPane.showMessageDialog(dialog, "Lỗi khi cập nhật file!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
-
-                        dialog.dispose();
-                    }
-                });
-
-                // Sự kiện hủy sửa
-                btnHuy.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        int confirm = JOptionPane.showConfirmDialog(dialog, "Bạn chắc chắn muốn hủy?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-                        if (confirm == JOptionPane.YES_OPTION) {
-                            dialog.dispose();
-                        }
-                    }
-                });
-
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
-            }
-        });
-
-
+        JButton btnXoa = new JButton("Xóa");
         JButton btnIn = new JButton("In");
-        btnIn.setForeground(new Color(255, 255, 255));
-        btnIn.setBackground(new Color(0, 64, 128));
-        panelToolBar.add(btnIn);
-        btnIn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                DefaultTableModel model = (DefaultTableModel) tableNhanVien.getModel();
-                int rowCount = model.getRowCount();
-                int columnCount = model.getColumnCount();
 
-                if (rowCount == 0) {
-                    JOptionPane.showMessageDialog(null, "Không có dữ liệu để in!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+        btnThem.addActionListener(this::handleThem);
+        btnSua.addActionListener(this::handleSua);
+        btnXoa.addActionListener(this::handleXoa);
+        btnIn.addActionListener(this::handleIn);
 
-                // Đặt tên file
-                String filePath = "src/data/employee_list.csv";
+        toolBar.add(btnThem);
+        toolBar.add(btnSua);
+        toolBar.add(btnXoa);
+        toolBar.add(btnIn);
 
-                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8"))) {
-                    // Thêm BOM để Excel nhận diện UTF-8 (nếu mở file bằng Excel)
-                    writer.write("\uFEFF");
+        add(toolBar, BorderLayout.NORTH);
 
-                    // Ghi tiêu đề cột
-                    for (int i = 0; i < columnCount; i++) {
-                        writer.write(model.getColumnName(i) + (i < columnCount - 1 ? "," : "\n"));
-                    }
+        model = new DefaultTableModel(new Object[]{
+                "Mã nhân viên", "Tên nhân viên", "Năm sinh", "Giới tính", "CCCD", "Chức vụ", "Tình trạng", "Tên tài khoản"
+        }, 0);
+        table = new JTable(model);
 
-                    // Ghi dữ liệu từ bảng
-                    for (int i = 0; i < rowCount; i++) {
-                        for (int j = 0; j < columnCount; j++) {
-                            writer.write(model.getValueAt(i, j).toString() + (j < columnCount - 1 ? "," : "\n"));
-                        }
-                    }
-
-                    JOptionPane.showMessageDialog(null, "Xuất dữ liệu thành công!\nFile lưu tại: " + filePath, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Lỗi khi xuất file!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        //Panel tìm kiếm (phía trên, bên phải)
-        JPanel panelSearch = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JLabel lblTimKiem = new JLabel("Tìm kiếm:");
-        panelSearch.add(lblTimKiem);
-
-        txtTimKiem = new JTextField();
-        panelSearch.add(txtTimKiem);
-        txtTimKiem.setColumns(15);
-        
-
-
-        // Thêm panelSearch vào ngay dưới thanh công cụ
-        add(panelSearch, BorderLayout.SOUTH);
-
-        //Bảng hiển thị nhân viên (center)
-        JScrollPane scrollPane = new JScrollPane();
+        JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(new TitledBorder("Danh sách nhân viên"));
         add(scrollPane, BorderLayout.CENTER);
 
-        // Tạo model cho bảng với tiêu đề cột
-        DefaultTableModel model = new DefaultTableModel(
-            new Object[][] {},
-            new String[] {
-                "Mã NV", "Họ tên", "Ngày sinh", "Giới tính", "SĐT", "Vị trí"
-            }
-        );
-        // Đọc dữ liệu từ file employee.txt
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream("src/data/nhanvien.txt"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // Giả sử dữ liệu được phân cách bởi dấu phẩy
-                String[] rowData = line.split(",");
-                // Loại bỏ khoảng trắng dư nếu cần
-                for (int i = 0; i < rowData.length; i++) {
-                    rowData[i] = rowData[i].trim();
-                }
-                model.addRow(rowData);
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        loadData();
+    }
+
+    private void loadData() {
+        model.setRowCount(0);
+        List<Entity_NhanVien> list = DAO_NhanVien.getAllNhanVien();
+        for (Entity_NhanVien nv : list) {
+            model.addRow(new Object[]{
+                    nv.getMaNV(), nv.getTenNV(), nv.getNamSinh(), nv.isPhai() ? "Nam" : "Nữ",
+                    nv.getCCCD(), nv.getChucVu(), nv.isTinhTrangNV() ? "Hoạt động" : "Nghỉ", nv.getTenTK()
+            });
         }
+    }
 
-        tableNhanVien = new JTable(model);
-        scrollPane.setViewportView(tableNhanVien);
+    private void handleThem(ActionEvent e) {
+        Entity_NhanVien nv = showForm(null);
+        if (nv != null && DAO_NhanVien.themNhanVien(nv)) {
+            loadData();
+            JOptionPane.showMessageDialog(this, "Thêm thành công");
+        } else if (nv != null) {
+            JOptionPane.showMessageDialog(this, "Thêm thất bại");
+        }
+    }
 
-        // Tùy chỉnh thêm cho bảng nếu muốn...
-        // Ví dụ: tableNhanVien.getColumnModel().getColumn(1).setPreferredWidth(80);
+    private void handleSua(ActionEvent e) {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Chọn nhân viên");
+            return;
+        }
+        Entity_NhanVien nv = getFromRow(row);
+        Entity_NhanVien nvNew = showForm(nv);
+        if (nvNew != null && DAO_NhanVien.capNhatNhanVien(nvNew)) {
+            loadData();
+            JOptionPane.showMessageDialog(this, "Cập nhật thành công");
+        } else if (nvNew != null) {
+            JOptionPane.showMessageDialog(this, "Cập nhật thất bại");
+        }
+    }
+
+    private void handleXoa(ActionEvent e) {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Chọn nhân viên");
+            return;
+        }
+        String maNV = model.getValueAt(row, 0).toString();
+        int confirm = JOptionPane.showConfirmDialog(this, "Xóa nhân viên " + maNV + "?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION && DAO_NhanVien.xoaNhanVien(maNV)) {
+            loadData();
+            JOptionPane.showMessageDialog(this, "Xóa thành công");
+        } else {
+            JOptionPane.showMessageDialog(this, "Xóa thất bại");
+        }
     }
     
-    protected void searchEmployee(String keyword) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	protected void loadData() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	// Getter/Setter nếu cần
-    public JTable getTableNhanVien() {
-        return tableNhanVien;
+    private void handleIn(ActionEvent e) {
+    	
     }
 
-    public JTextField getTxtTimKiem() {
-        return txtTimKiem;
+    private Entity_NhanVien showForm(Entity_NhanVien nvEdit) {
+        JTextField txtMa = new JTextField();
+        JTextField txtTen = new JTextField();
+        JTextField txtNgay = new JTextField();
+        JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ"});
+        JTextField txtCCCD = new JTextField();
+        JTextField txtChucVu = new JTextField();
+        JComboBox<String> cbTinhTrang = new JComboBox<>(new String[]{"Hoạt động", "Nghỉ"});
+        JTextField txtTK = new JTextField();
+
+        if (nvEdit != null) {
+            txtMa.setText(nvEdit.getMaNV()); txtMa.setEnabled(false);
+            txtTen.setText(nvEdit.getTenNV());
+            txtNgay.setText(nvEdit.getNamSinh());
+            cbGioiTinh.setSelectedItem(nvEdit.isPhai() ? "Nam" : "Nữ");
+            txtCCCD.setText(nvEdit.getCCCD());
+            txtChucVu.setText(nvEdit.getChucVu());
+            cbTinhTrang.setSelectedItem(nvEdit.isTinhTrangNV() ? "Hoạt động" : "Nghỉ");
+            txtTK.setText(nvEdit.getTenTK());
+        }
+
+        JPanel panel = new JPanel(new GridLayout(8, 2));
+        panel.add(new JLabel("Mã NV:")); panel.add(txtMa);
+        panel.add(new JLabel("Tên NV:")); panel.add(txtTen);
+        panel.add(new JLabel("Năm sinh (yyyy-MM-dd):")); panel.add(txtNgay);
+        panel.add(new JLabel("Giới tính:")); panel.add(cbGioiTinh);
+        panel.add(new JLabel("CCCD:")); panel.add(txtCCCD);
+        panel.add(new JLabel("Chức vụ:")); panel.add(txtChucVu);
+        panel.add(new JLabel("Tình trạng:")); panel.add(cbTinhTrang);
+        panel.add(new JLabel("Tên TK:")); panel.add(txtTK);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, nvEdit == null ? "Thêm" : "Cập nhật", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            return new Entity_NhanVien(
+                txtMa.getText().trim(),
+                txtTen.getText().trim(),
+                txtNgay.getText().trim(),
+                cbGioiTinh.getSelectedItem().equals("Nam"),
+                txtCCCD.getText().trim(),
+                txtChucVu.getText().trim(),
+                cbTinhTrang.getSelectedItem().equals("Hoạt động"),
+                txtTK.getText().trim()
+            );
+        }
+        return null;
+    }
+
+    private Entity_NhanVien getFromRow(int row) {
+        return new Entity_NhanVien(
+            model.getValueAt(row, 0).toString(),
+            model.getValueAt(row, 1).toString(),
+            model.getValueAt(row, 2).toString(),
+            model.getValueAt(row, 3).toString().equals("Nam"),
+            model.getValueAt(row, 4).toString(),
+            model.getValueAt(row, 5).toString(),
+            model.getValueAt(row, 6).toString().equals("Hoạt động"),
+            model.getValueAt(row, 7).toString()
+        );
     }
 }

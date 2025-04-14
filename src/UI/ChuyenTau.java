@@ -3,6 +3,11 @@ package UI;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Properties;
+
 import javax.swing.border.*;
 
 public class ChuyenTau extends JPanel {

@@ -52,6 +52,9 @@ public class ChiTietHoaDon extends JFrame {
         JButton btnClose = new JButton("Đóng");
         btnClose.setForeground(new Color(255, 255, 255));
         btnClose.setBackground(new Color(0, 64, 128));
+        btnClose.setOpaque(true);
+        btnClose.setContentAreaFilled(true);
+        btnClose.setBorderPainted(false);
         btnClose.addActionListener(e -> dispose());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
