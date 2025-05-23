@@ -112,6 +112,35 @@ public class DatabaseHelper {
 
         return danhSach;
     }
+    
+    /**
+     * Trả về tên loại toa (mô tả) theo mã toa.
+     * Giả sử trong CSDL bạn có bảng Toa với cột loaiToa,
+     * và bảng LoaiToa (maLoaiToa, tenLoaiToa).
+     */
+    public static String getCabinDescription(String maToa) {
+        String sql = """
+            SELECT lg.tenLoaiToa
+            FROM Toa t
+            JOIN LoaiToa lg
+              ON t.maLoaiToa = lg.maLoaiToa
+            WHERE t.maToa = ?
+        """;
+        try ( Connection conn = getConnection();
+              PreparedStatement stmt = conn.prepareStatement(sql) ) {
+
+            stmt.setString(1, maToa.trim());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("tenLoaiToa");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";  // fallback nếu không tìm thấy
+    }
+
+
 
 
     public static String getNgayDiByMaTau(String maTau) {
