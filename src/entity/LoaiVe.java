@@ -29,5 +29,8 @@ public class LoaiVe {
 		this.giaTien = giaTien;
 	}
 
-    
+	@Override
+    public String toString() {
+        return tenLoaiVe;  
+    }
 }

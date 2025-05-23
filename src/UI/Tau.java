@@ -1,185 +1,255 @@
 package UI;
 
+import entity.TauEntity;
+import entity.TrainInfo;
+
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
+
+import connectDB.DatabaseHelper;
+
 import java.awt.*;
-import java.net.URL;
+import java.awt.event.*;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Tau extends JPanel {
+    private JPanel trainPanel;
+    private JPanel cabinPanel;
+    private JPanel seatPanel;
+    private GheInfo selectedSeat;
+    private String selectedTrain = "";
+    private String selectedCabin = "";
+
+    private Dimension trainButtonSize = new Dimension(250, 200);
+    private Dimension cabinButtonSize = new Dimension(80, 80);
+    private Dimension seatButtonSize = new Dimension(80, 80);
+
+    private Dimension trainIconSize = new Dimension(120, 120);
+    private Map<String, TrainInfo> trains = new HashMap<>();
+
     public Tau() {
+        initUI();
+    }
+
+    public Tau(List<TauEntity> danhSachTau) {
+        for (TauEntity tau : danhSachTau) {
+            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+            String gioDi = tau.getGioKhoiHanh() != null ? timeFormat.format(tau.getGioKhoiHanh()) : "??:??";
+            String gioDen = tau.getGioDen() != null ? timeFormat.format(tau.getGioDen()) : "??:??";
+            trains.put(tau.getMaTau(), new TrainInfo(
+                tau.getMaTau(), tau.getTenTau(), gioDi, gioDen, tau.getSoChoCon()
+            ));
+        }
+        initUI();
+    }
+
+    private void initUI() {
+        trainPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        trainPanel.setBorder(BorderFactory.createTitledBorder("Chọn chuyến tàu"));
+
+        cabinPanel = new JPanel();
+        cabinPanel.setLayout(new BoxLayout(cabinPanel, BoxLayout.Y_AXIS));
+        cabinPanel.setBorder(BorderFactory.createTitledBorder("Chọn toa tàu"));
+
+        seatPanel = new JPanel();
+        seatPanel.setLayout(new BoxLayout(seatPanel, BoxLayout.Y_AXIS));
+        seatPanel.setBorder(BorderFactory.createTitledBorder("Chọn ghế"));
+
         setLayout(new BorderLayout(10, 10));
-        setBackground(Color.WHITE);
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Title
-        JLabel titleLabel = new JLabel("Quản lý chuyến tàu", JLabel.CENTER);
-        titleLabel.setFont(new Font("Roboto", Font.BOLD, 24));
-        add(titleLabel, BorderLayout.NORTH);
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        createTrainPanel();
+        centerPanel.add(trainPanel);
+        centerPanel.add(cabinPanel);
+        centerPanel.add(seatPanel);
 
-        // ==== Left panel: icons + older trains list ====
-        JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
-        leftPanel.setBackground(new Color(240, 240, 240));
-        leftPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        add(centerPanel, BorderLayout.CENTER);
+    }
 
-        // Icons panel (5 icons)
-        JPanel iconsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        iconsPanel.setBackground(new Color(240, 240, 240));
-        String[] iconPaths = {
-            "/images/train_1.png",
-            "/images/train_1.png",
-            "/images/train_1.png",
-            "/images/train_1.png",
-            "/images/train_1.png"
-        };
-        String[] schedules = {
-            "SGO → PTH\n30-03-2025",
-            "PTH → SGO\n01-04-2025",
-            "SGO → PTH\n02-04-2025",
-            "PTH → SGO\n04-04-2025",
-            "SGO → NT\n07-04-2025"
-        };
-        for (int i = 0; i < iconPaths.length; i++) {
-            JButton btn = new JButton("<html>" + schedules[i].replace("\n", "<br>") + "</html>");
-            
-            // Load icon an toàn:
-            URL imgUrl = getClass().getResource(iconPaths[i]);
-            ImageIcon icon;
-            if (imgUrl != null) {
-                icon = new ImageIcon(imgUrl);
-            } else {
-                System.err.println("Không tìm thấy resource: " + iconPaths[i]);
-                // Thay bằng đường dẫn tuyệt đối đến file của bạn, hoặc icon mặc định:
-                icon = new ImageIcon("src/images/train_1.png");
-            }
-            
-            btn.setIcon(icon);
-            btn.setVerticalTextPosition(SwingConstants.BOTTOM);
-            btn.setHorizontalTextPosition(SwingConstants.CENTER);
-            btn.setPreferredSize(new Dimension(100, 100));
-            btn.setBackground(Color.WHITE);
-            btn.setFocusPainted(false);
-            iconsPanel.add(btn);
+    private void createTrainPanel() {
+        trainPanel.removeAll();
+        for (TrainInfo train : trains.values()) {
+            JPanel trainButton = createTrainButton(train);
+            trainPanel.add(trainButton);
         }
-        leftPanel.add(iconsPanel, BorderLayout.NORTH);
+        trainPanel.revalidate();
+        trainPanel.repaint();
+    }
 
-        // Bottom panel: label + list
-        JLabel olderLabel = new JLabel("Danh sách các chuyến tàu khác");
-        olderLabel.setFont(new Font("Roboto", Font.BOLD, 14));
-        olderLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+    private JPanel createTrainButton(TrainInfo train) {
+        JPanel trainButton = new JPanel();
+        trainButton.setLayout(new BoxLayout(trainButton, BoxLayout.Y_AXIS));
+        trainButton.setPreferredSize(trainButtonSize);
+        trainButton.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        trainButton.setBackground(train.getMaTau().equals(selectedTrain)
+                ? new Color(135, 206, 250)
+                : new Color(220, 220, 220));
+        trainButton.setOpaque(true);
 
-        String[] olderTrains = {
-            "SPT1 – 03-03-2025 – Sài Gòn → Phan Thiết",
-            "SE3  – 05-03-2025 – Hà Nội → Đà Nẵng",
-            "SE7  – 07-03-2025 – Hà Nội → Nha Trang",
-            "SPT4 – 10-03-2025 – Sài Gòn → Phan Thiết"
-        };
-        JList<String> olderList = new JList<>(olderTrains);
-        olderList.setVisibleRowCount(5);
-        JScrollPane olderScroll = new JScrollPane(olderList);
+        ImageIcon icon = new ImageIcon("src/images/train_1.png");
+        Image scaledIcon = icon.getImage().getScaledInstance(
+                trainIconSize.width, trainIconSize.height, Image.SCALE_SMOOTH);
+        JLabel iconLabel = new JLabel(new ImageIcon(scaledIcon));
+        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
-        bottomPanel.add(olderLabel, BorderLayout.NORTH);
-        bottomPanel.add(olderScroll, BorderLayout.CENTER);
+        JLabel idLabel = new JLabel(train.getMaTau());
+        idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        idLabel.setFont(new Font("Arial", Font.BOLD, 14));
 
-        leftPanel.add(bottomPanel, BorderLayout.CENTER);
-        add(leftPanel, BorderLayout.WEST);
-        // ================================================
+        JLabel deparLabel = new JLabel("TG đi: " + train.getGioKhoiHanh());
+        deparLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Table panel
-        String[] columnNames = {
-            "Mã tàu", "Loại ghế",
-            "Ga đi", "Giờ đi", "Ngày đi",
-            "Ga đến", "Giờ đến", "Ngày đến",
-            "Giá vé", "Chọn ghế"
-        };
-        Object[][] data = {
-            {"SPT2", "Ghế ngồi mềm", "Sài Gòn", "06:30", "30-11-2024",
-             "Phan Thiết", "11:05", "30-11-2024", "204,000 VND", "Chọn ghế"},
-            {"SPT3", "Ghế ngồi cứng", "Sài Gòn", "07:00", "30-11-2024",
-             "Nha Trang", "12:30", "30-11-2024", "350,000 VND", "Chọn ghế"},
-            {"SE5", "Giường nằm",    "Hà Nội",   "19:00", "30-11-2024",
-             "Đà Nẵng",   "06:30", "01-12-2024", "750,000 VND", "Chọn ghế"}
-        };
+        JLabel arrLabel = new JLabel("TG đến: " + train.getGioDen());
+        arrLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+        trainButton.add(iconLabel);
+        trainButton.add(Box.createVerticalStrut(5));
+        trainButton.add(idLabel);
+        trainButton.add(Box.createVerticalStrut(5));
+        trainButton.add(deparLabel);
+        trainButton.add(arrLabel);
+
+        trainButton.addMouseListener(new MouseAdapter() {
             @Override
-            public boolean isCellEditable(int row, int col) {
-                return col == getColumnCount() - 1;
+            public void mouseClicked(MouseEvent e) {
+                selectedTrain = train.getMaTau();
+                createCabinPanel();
             }
-        };
-        JTable table = new JTable(model);
-        table.setRowHeight(30);
+        });
 
-        table.getColumnModel()
-             .getColumn(table.getColumnCount() - 1)
-             .setCellRenderer(new ButtonRenderer());
-        table.getColumnModel()
-             .getColumn(table.getColumnCount() - 1)
-             .setCellEditor(new ButtonEditor(new JCheckBox()));
-
-        JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createTitledBorder("Danh sách các chuyến tàu chuẩn bị khởi hành:"));
-        add(scroll, BorderLayout.CENTER);
+        return trainButton;
     }
 
-    // Renderer để hiển thị JButton trong JTable
-    class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer() {
-            setOpaque(true);
-            setText("Chọn ghế");
+    private void createCabinPanel() {
+        cabinPanel.removeAll();
+        JPanel cabinsContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 2, 0));
+        cabinsContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        cabinsContainer.add(createCabinButton("Đầu tàu", false));
+
+        // Lấy danh sách mã toa dạng String
+        List<String> danhSachToa = DatabaseHelper.getCabinsByTrainId(selectedTrain);
+        if (danhSachToa == null || danhSachToa.isEmpty()) {
+            cabinPanel.add(new JLabel("Không có toa nào cho tàu này."));
+            cabinPanel.revalidate();
+            cabinPanel.repaint();
+            return;
         }
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
-            return this;
+
+        for (String maToa : danhSachToa) {
+            JButton cabinButton = createCabinButton("Toa " + maToa, true);
+            cabinButton.addActionListener(e -> {
+                selectedCabin = maToa;
+                loadSeatsForCabin(maToa);
+            });
+            cabinsContainer.add(cabinButton);
         }
+
+        cabinPanel.add(cabinsContainer);
+        cabinPanel.revalidate();
+        cabinPanel.repaint();
     }
 
-    // Editor để xử lý sự kiện click vào nút
-    class ButtonEditor extends DefaultCellEditor {
-        private JButton button;
-        private boolean clicked;
-        private int row;
+    private JButton createCabinButton(String text, boolean isSelectable) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(cabinButtonSize);
+        button.setBackground(new Color(220, 220, 220));
+        button.setEnabled(isSelectable);
+        return button;
+    }
 
-        public ButtonEditor(JCheckBox checkBox) {
-            super(checkBox);
-            button = new JButton("Chọn ghế");
-            button.setOpaque(true);
-            button.setContentAreaFilled(true);
-            button.setBorderPainted(false);
-            button.addActionListener(e -> fireEditingStopped());
-        }
+    private void loadSeatsForCabin(String maToa) {
+        seatPanel.removeAll();
+        JPanel seatMapPanel = new JPanel(new GridBagLayout());
+        List<GheInfo> danhSachGhe = getSeatsForCabin(maToa);
 
-        @Override
-        public Component getTableCellEditorComponent(
-                JTable table, Object value, boolean isSelected,
-                int row, int column) {
-            this.row = row;
-            clicked = true;
-            return button;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            if (clicked) {
-                DefaultTableModel m = (DefaultTableModel) ((JTable)button.getParent()).getModel();
-                String maTau = m.getValueAt(row, 0).toString();
-                JOptionPane.showMessageDialog(
-                    null,
-                    "Bạn đã chọn ghế trên tàu: " + maTau,
-                    "Xác nhận",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
+        if (danhSachGhe != null && !danhSachGhe.isEmpty()) {
+            int cols = 4;
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            for (int i = 0; i < danhSachGhe.size(); i++) {
+                GheInfo ghe = danhSachGhe.get(i);
+                JButton seatButton = new JButton("Số " + ghe.soGhe + "\n" + ghe.loaiGhe);
+                seatButton.setPreferredSize(seatButtonSize);
+                seatButton.setBackground(new Color(60, 179, 113));
+                seatButton.setForeground(Color.WHITE);
+                seatButton.setOpaque(true);
+                seatButton.setContentAreaFilled(true);
+                seatButton.setBorderPainted(false);
+                seatButton.addActionListener(e -> {
+                    selectedSeat = ghe;
+                    JOptionPane.showMessageDialog(this,
+                        "Bạn đã chọn ghế số " + ghe.soGhe + " (" + ghe.loaiGhe + ")");
+                    int confirm = JOptionPane.showConfirmDialog(this,
+                        "Bạn có muốn đặt vé với ghế này?", "Đặt vé",
+                        JOptionPane.YES_NO_OPTION);
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        openDatVePanel();
+                    }
+                });
+                gbc.gridx = i % cols;
+                gbc.gridy = i / cols;
+                seatMapPanel.add(seatButton, gbc);
             }
-            clicked = false;
-            return "Chọn ghế";
+        } else {
+            seatMapPanel.add(new JLabel("Không có thông tin ghế cho toa này"));
         }
 
-        @Override
-        public boolean stopCellEditing() {
-            clicked = false;
-            return super.stopCellEditing();
+        JScrollPane scrollPane = new JScrollPane(seatMapPanel);
+        scrollPane.setPreferredSize(new Dimension(400, 200));
+        seatPanel.add(scrollPane);
+        seatPanel.revalidate();
+        seatPanel.repaint();
+    }
+
+    private void openDatVePanel() {
+        String maTau = selectedTrain;
+        String gioDi = trains.get(maTau).getGioKhoiHanh();
+        String gioDen = trains.get(maTau).getGioDen();
+        String ngayDi = DatabaseHelper.getNgayDiByMaTau(maTau);
+        String cho = String.valueOf(selectedSeat.soGhe);
+        int soLuongVe = 1;
+
+        JFrame datVeFrame = new JFrame("Đặt Vé Tàu");
+        datVeFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        datVeFrame.setSize(1000, 700);
+
+        VeTau.DatVePanel datVePanel = new VeTau.DatVePanel(
+            maTau, gioDi, gioDen, ngayDi, cho, soLuongVe, null
+        );
+
+        datVeFrame.setContentPane(datVePanel);
+        datVeFrame.setLocationRelativeTo(null);
+        datVeFrame.setVisible(true);
+    }
+
+    private List<GheInfo> getSeatsForCabin(String maToa) {
+        return DatabaseHelper.getGheByToa(maToa);
+    }
+
+    public static class GheInfo {
+        public String maGhe;
+        public int soGhe;
+        public String loaiGhe;
+        public GheInfo(String maGhe, int soGhe, String loaiGhe) {
+            this.maGhe = maGhe;
+            this.soGhe = soGhe;
+            this.loaiGhe = loaiGhe;
         }
     }
+
+    public static void setGioKhoiHanh(Timestamp timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	public static void setGioDen(Timestamp timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
 }

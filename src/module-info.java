@@ -12,4 +12,5 @@ module PTUD_N13 {
 	requires javafx.swing;
 	requires javafx.media;
 	requires javafx.controls;
+	requires jfreechart;
 }

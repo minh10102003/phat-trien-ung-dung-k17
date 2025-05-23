@@ -1,441 +1,272 @@
 package UI;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
+import javax.swing.table.DefaultTableModel;
 
-import com.toedter.calendar.JDateChooser;
+import DAO.DAO_HanhKhach;
+import DAO.DAO_LoaiVe;
+import DAO.DAO_Ve;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.UUID;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import connectDB.ConnectDB;
+import entity.LoaiVe;
+
+import java.util.List;
+
 
 public class VeTau {
-    public static class DatVePanel extends JPanel {
-        // --- fields ---
-        private JPanel topPanel, centerPanel, returnDatePanel;
-        private JButton searchButton;
-        private JRadioButton roundTripRadio, oneWayRadio;
-        private ButtonGroup tripTypeGroup;
-        private JDateChooser departureDateChooser, returnDateChooser;
-        private JLabel departureDateLabel, departureDayLabel, returnDateLabel;
-        private SimpleDateFormat dayFormat;
 
-        private JLabel departureStationLabel, arrivalStationLabel;
-        private JTextField nameField, phoneField, idField;
+	/**
+	 * Panel hiển thị danh sách các vé đã có trong CSDL
+	 */
+	public static class DanhSachVePanel extends JPanel {
+		private DefaultTableModel model;
+		private JTable table;
 
-        public DatVePanel() {
-            // 1. Thiết lập layout chính của DatVePanel
-            setLayout(new BorderLayout(10, 10));
-            setBackground(new Color(240, 240, 240));
-            setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-            dayFormat = new SimpleDateFormat("EEEE", new Locale("vi", "VN"));
+		public DanhSachVePanel() {
+			setLayout(new BorderLayout());
+			setBorder(BorderFactory.createTitledBorder("Danh sách vé có sẵn"));
 
-            // 2. Tạo các sub‑panel riêng lẻ
-            createTopPanel();
-            createFormPanel();
-            createSearchButton();
-            JPanel infoPanel = createInfoPanel();
+			String[] columns = { "Mã vé", "Mã tàu", "Giờ đi", "Ngày đi", "Loại vé", "Chỗ", "Mã loại vé",
+					"Số lượng vé" };
+			model = new DefaultTableModel(columns, 0);
+			table = new JTable(model);
+			table.setRowHeight(28);
 
-            // 3. Gom các phần form (centerPanel) và thông tin khách hàng (infoPanel) theo chiều dọc
-            JPanel formPanel = new JPanel();
-            formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-            formPanel.setOpaque(false);
-            formPanel.add(centerPanel);
-            formPanel.add(Box.createVerticalStrut(15));
-            formPanel.add(infoPanel);
+			add(new JScrollPane(table), BorderLayout.CENTER);
+			loadVeData();
+		}
 
-            // 4. Tạo bookingPanel chứa toàn bộ phần “Đặt vé”
-            JPanel bookingPanel = new JPanel(new BorderLayout(10, 10));
-            bookingPanel.setOpaque(false);
-            // Phần đầu: chọn loại vé (topPanel)
-            bookingPanel.add(topPanel, BorderLayout.NORTH);
-            // Phần giữa: formPanel chứa các ô đặt vé
-            bookingPanel.add(formPanel, BorderLayout.CENTER);
-            // Phần cuối: nút “Đặt vé”
-            bookingPanel.add(searchButton, BorderLayout.SOUTH);
+		public void loadVeData() {
+			model.setRowCount(0);
+			String sql = "SELECT maVe, maTau, gioDi, ngayDi, loaiVe, cho, maLoaiVe, soLuongVe FROM Ve";
+			try (Connection conn = ConnectDB.getConnection();
+					Statement stmt = conn.createStatement();
+					ResultSet rs = stmt.executeQuery(sql)) {
 
-            // 5. Tạo imagePanel (chỗ để bạn tự thêm hình ảnh)
-            JPanel imagePanel = new JPanel();
-            imagePanel.setBackground(Color.WHITE);
-            // Bạn có thể thiết lập layout hoặc add hình ảnh theo ý muốn, ví dụ:
-            // imagePanel.setLayout(new BorderLayout());
-            // imagePanel.add(new JLabel(new ImageIcon("duong_dan_anh.png")), BorderLayout.CENTER);
+				SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm");
+				SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy");
 
-            // 6. Gom bookingPanel và imagePanel vào contentWrapper
-            JPanel contentWrapper = new JPanel(new BorderLayout());
-            contentWrapper.add(bookingPanel, BorderLayout.WEST);
-            contentWrapper.add(imagePanel, BorderLayout.CENTER);
+				while (rs.next()) {
+					String maVe = rs.getString("maVe");
+					String maTau = rs.getString("maTau");
+					Time gioDi = rs.getTime("gioDi");
+					Date ngayDi = rs.getDate("ngayDi");
+					String loaiVe = rs.getString("loaiVe");
+					String cho = rs.getString("cho");
+					String maLoaiVe = rs.getString("maLoaiVe");
+					int soLuongVe = rs.getInt("soLuongVe");
 
-            // 7. Thêm contentWrapper vào DatVePanel (không cần thêm topPanel hay searchButton riêng biệt nữa)
-            add(contentWrapper, BorderLayout.CENTER);
-        }
+					model.addRow(new Object[] { maVe, maTau, timeFmt.format(gioDi), dateFmt.format(ngayDi), loaiVe, cho,
+							maLoaiVe, soLuongVe });
+				}
+			} catch (SQLException ex) {
+				ex.printStackTrace();
+				JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu vé: " + ex.getMessage(), "Lỗi",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		}
+	}
 
-        private void createTopPanel() {
-            topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
-            topPanel.setOpaque(false);
+	/**
+	 * Panel để đặt vé mới: chọn chuyến, toa, ghế rồi nhập thông tin khách
+	 */
 
-            roundTripRadio = new JRadioButton("Khứ hồi");
-            oneWayRadio    = new JRadioButton("Một chiều");
-            roundTripRadio.setFont(new Font("Arial", Font.PLAIN, 14));
-            oneWayRadio.setFont(new Font("Arial", Font.PLAIN, 14));
-            roundTripRadio.setOpaque(false);
-            oneWayRadio.setOpaque(false);
+	public static class DatVePanel extends JPanel {
+		private DefaultTableModel tableModel;
+		private JTable table;
+		private JTextField tenKhachField, cccdField, sdtField;
+		private JComboBox<LoaiVe> cboLoaiVe; // ← thêm combo
+		private JButton btnLuu;
+		private final String ngayDiStr;
 
-            tripTypeGroup = new ButtonGroup();
-            tripTypeGroup.add(roundTripRadio);
-            tripTypeGroup.add(oneWayRadio);
+		public DatVePanel(String maTau, String gioDiParam, String gioDenParam, String ngayDiParam, String cho,
+				int soLuongVe, String loaiVe) {
 
-            // Khi chọn, show/hide panel Ngày về
-            roundTripRadio.addActionListener(e -> {
-                returnDateChooser.setEnabled(true);
-                returnDatePanel.setVisible(true);
-                centerPanel.revalidate(); centerPanel.repaint();
-            });
-            oneWayRadio.addActionListener(e -> {
-                returnDateChooser.setEnabled(false);
-                returnDatePanel.setVisible(false);
-                centerPanel.revalidate(); centerPanel.repaint();
-            });
+			// 1) Xác định giờ đi / giờ đến / ngày đi
+			String[] gio = getGioDiGioDenFromDatabase(maTau);
+			String gioDi = (gioDiParam == null || "??:??".equals(gioDiParam)) ? gio[0] : gioDiParam;
+			String gioDen = (gioDenParam == null || "??:??".equals(gioDenParam)) ? gio[1] : gioDenParam;
+			String ngayDi = (ngayDiParam == null || ngayDiParam.isEmpty()) ? getNgayDiFromDatabase(maTau) : ngayDiParam;
+			this.ngayDiStr = ngayDi;
 
-            topPanel.add(roundTripRadio);
-            topPanel.add(oneWayRadio);
-        }
+			// 2) Layout chính
+			setLayout(new BorderLayout(10, 10));
+			setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        private void createFormPanel() {
-            // GridLayout 3x2 để chứa 5 ô + 1 ô trống
-            centerPanel = new JPanel(new GridLayout(3, 2, 10, 10));
-            centerPanel.setOpaque(false);
+			add(createTablePanel(maTau, gioDi, gioDen, ngayDi, cho, soLuongVe), BorderLayout.CENTER);
+			add(createCustomerPanel(), BorderLayout.SOUTH);
+		}
 
-            // Ga đi / Ga đến
-            centerPanel.add(createLocationPanel("Ga đi",  "Chọn ga đi"));
-            centerPanel.add(createLocationPanel("Ga đến", "Chọn ga đến"));
-            // Số vé
-            centerPanel.add(createPassengerPanel());
-            // Ngày đi
-            centerPanel.add(createDepartureDatePanel());
-            // Ngày về (có thể ẩn)
-            centerPanel.add(returnDatePanel = createReturnDatePanel());
-            // Ô trống
-            centerPanel.add(Box.createGlue());
-        }
+		private JPanel createTablePanel(String maTau, String gioDi, String gioDen, String ngayDi, String cho,
+				int soLuongVe) {
+			String[] cols = { "Mã tàu", "Giờ đi", "Giờ đến", "Ngày đi", "Loại vé", "Chỗ", "Mã loại vé", "Số lượng vé" };
+			tableModel = new DefaultTableModel(cols, 0);
+			// để trống cột 4 (Loại vé) và cột 6 (Mã loại vé)
+			tableModel.addRow(new Object[] { maTau, gioDi, gioDen, ngayDi, "", // sẽ cập nhật từ combo
+					cho, "", // sẽ cập nhật từ combo
+					soLuongVe });
+			table = new JTable(tableModel);
+			table.setRowHeight(28);
 
-        private JPanel createInfoPanel() {
-            JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
-            panel.setOpaque(false);
+			JPanel p = new JPanel(new BorderLayout());
+			p.setBorder(BorderFactory.createTitledBorder("Thông tin vé"));
+			p.add(new JScrollPane(table), BorderLayout.CENTER);
+			return p;
+		}
 
-            JLabel lblName  = new JLabel("Tên khách hàng:");
-            JLabel lblPhone = new JLabel("Số điện thoại:");
-            JLabel lblID    = new JLabel("CCCD:");
-            for (JLabel lbl : new JLabel[]{lblName, lblPhone, lblID}) {
-                lbl.setFont(new Font("Arial", Font.PLAIN, 12));
-            }
+		private JPanel createCustomerPanel() {
+		    JPanel p = new JPanel(new GridLayout(5, 2, 10, 10));
+		    p.setBorder(BorderFactory.createTitledBorder("Thông tin hành khách & loại vé"));
 
-            nameField  = new JTextField();
-            phoneField = new JTextField();
-            idField    = new JTextField();
+		    p.add(new JLabel("Họ và tên:"));
+		    tenKhachField = new JTextField(); p.add(tenKhachField);
 
-            panel.add(lblName);  panel.add(nameField);
-            panel.add(lblPhone); panel.add(phoneField);
-            panel.add(lblID);    panel.add(idField);
+		    p.add(new JLabel("CCCD:"));
+		    cccdField = new JTextField(); p.add(cccdField);
 
-            return panel;
-        }
+		    p.add(new JLabel("Số điện thoại:"));
+		    sdtField = new JTextField(); p.add(sdtField);
 
-        private void createSearchButton() {
-            searchButton = new JButton("Đặt vé");
-            searchButton.setFont(new Font("Arial", Font.BOLD, 16));
-            searchButton.setForeground(Color.WHITE);
-            searchButton.setBackground(new Color(255, 140, 0));
-            searchButton.setFocusPainted(false);
-            searchButton.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-            searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            searchButton.setOpaque(true);
-            searchButton.setContentAreaFilled(true);
-            searchButton.setBorderPainted(false);
+		    // --- Combo chọn loại vé ---
+		    p.add(new JLabel("Loại vé:"));
+		    cboLoaiVe = new JComboBox<>();
+		    try {
+		        List<LoaiVe> list = DAO_LoaiVe.getAllLoaiVe();
+		        for (LoaiVe lv : list) {
+		            cboLoaiVe.addItem(lv);
+		        }
+		    } catch (Exception ex) {
+		        ex.printStackTrace();
+		    }
+		    p.add(cboLoaiVe);
 
-            searchButton.addMouseListener(new MouseAdapter() {
-                @Override public void mouseEntered(MouseEvent e) {
-                    searchButton.setBackground(new Color(255, 160, 40));
-                }
-                @Override public void mouseExited(MouseEvent e) {
-                    searchButton.setBackground(new Color(255, 140, 0));
-                }
-            });
+		    // Nút Lưu
+		    p.add(new JLabel());
+		    btnLuu = new JButton("Lưu thông tin");
+		    btnLuu.addActionListener(e -> onSave());
+		    p.add(btnLuu);
 
-            searchButton.addActionListener(e -> {
-                // 1. Validate Ga đi / Ga đến
-                String dep = departureStationLabel.getText();
-                String arr = arrivalStationLabel.getText();
-                if (dep.equals("Chọn ga đi") || arr.equals("Chọn ga đến")) {
-                    JOptionPane.showMessageDialog(
-                        DatVePanel.this,
-                        "Vui lòng chọn cả Ga đi và Ga đến.",
-                        "Lỗi nhập liệu",
-                        JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
-                // 2. Nếu Khứ hồi thì phải chọn Ngày về
-                if (roundTripRadio.isSelected()
-                    && returnDateLabel.getText().equals("Chọn nếu mua vé về")) {
-                    JOptionPane.showMessageDialog(
-                        DatVePanel.this,
-                        "Vui lòng chọn Ngày về.",
-                        "Lỗi nhập liệu",
-                        JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
+		    return p;
+		}
 
-                // 3. Hiển thị thông tin
-                StringBuilder msg = new StringBuilder("Thông tin tìm kiếm:\n");
-                msg.append("- Ga đi: ").append(dep).append("\n");
-                msg.append("- Ga đến: ").append(arr).append("\n");
-                msg.append("- Loại vé: ")
-                   .append(roundTripRadio.isSelected() ? "Khứ hồi" : "Một chiều").append("\n");
-                msg.append("- Ngày đi: ").append(departureDateLabel.getText()).append("\n");
-                if (roundTripRadio.isSelected()) {
-                    msg.append("- Ngày về: ").append(returnDateLabel.getText()).append("\n");
-                }
-                msg.append("- Tên khách hàng: ").append(nameField.getText()).append("\n");
-                msg.append("- SĐT: ").append(phoneField.getText()).append("\n");
-                msg.append("- CCCD: ").append(idField.getText()).append("\n");
 
-                JOptionPane.showMessageDialog(
-                    DatVePanel.this,
-                    msg.toString(),
-                    "Tìm chuyến tàu",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-            });
-        }
+		private void onSave() {
+		    // 1) Validate
+		    String ten  = tenKhachField.getText().trim();
+		    String cccd = cccdField.getText().trim();
+		    String sdt  = sdtField.getText().trim();
+		    if (!ten.matches("([A-ZÀ-Ỵ][a-zà-ỹ]+\\s?)+")) {
+		        JOptionPane.showMessageDialog(this, "Tên không hợp lệ");
+		        return;
+		    }
+		    if (!sdt.matches("^0\\d{9}$")) {
+		        JOptionPane.showMessageDialog(this, "SĐT không hợp lệ");
+		        return;
+		    }
+		    if (ngayDiStr == null || ngayDiStr.isEmpty()) {
+		        JOptionPane.showMessageDialog(this, "Không xác định được Ngày đi");
+		        return;
+		    }
 
-        // ===== Các helper tạo sub‑panel =====
+		    // 2) Parse ngày
+		    Date ngayDi;
+		    try {
+		        ngayDi = new SimpleDateFormat("dd/MM/yyyy").parse(ngayDiStr);
+		    } catch (ParseException ex) {
+		        JOptionPane.showMessageDialog(this, "Định dạng Ngày đi không hợp lệ");
+		        return;
+		    }
 
-        private JPanel createLocationPanel(String title, String placeholder) {
-            JPanel panel = new JPanel(new BorderLayout(5,5));
-            panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220,220,220),1,true),
-                BorderFactory.createEmptyBorder(10,10,10,10)
-            ));
-            panel.setBackground(Color.WHITE);
+		    // 3) Lấy loại vé đã chọn từ JComboBox
+		    LoaiVe selected = (LoaiVe) cboLoaiVe.getSelectedItem();
+		    String tenLoaiVe = selected.getTenLoaiVe();
+		    String maLoaiVe  = selected.getMaLoaiVe();
 
-            JLabel lblTitle = new JLabel(title);
-            lblTitle.setFont(new Font("Arial", Font.PLAIN, 12));
-            lblTitle.setForeground(Color.GRAY);
+		    // 4) Cập nhật lại bảng tạm (để hiển thị trước khi lưu)
+		    tableModel.setValueAt(tenLoaiVe, 0, 4);
+		    tableModel.setValueAt(maLoaiVe,  0, 6);
 
-            JLabel placeholderLabel = new JLabel(placeholder);
-            placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+		    // 5) Đọc lại các trường khác trong bảng
+		    String maTau = (String) tableModel.getValueAt(0, 0);
+		    String gioDi = (String) tableModel.getValueAt(0, 1);
+		    String cho   = (String) tableModel.getValueAt(0, 5);
+		    int    sl    = (int)    tableModel.getValueAt(0, 7);
 
-            // Gán để validate
-            if (title.equals("Ga đi"))  departureStationLabel = placeholderLabel;
-            if (title.equals("Ga đến")) arrivalStationLabel   = placeholderLabel;
+		    // 6) Gọi DAO để chèn vé vào CSDL
+		    try {
+		        String maVeMoi = DAO_Ve.bookTicket(
+		            ten, cccd, sdt,
+		            maTau, gioDi, ngayDi,
+		            tenLoaiVe, cho, maLoaiVe,
+		            sl
+		        );
 
-            JPanel iconP = new JPanel(new BorderLayout());
-            iconP.setOpaque(false);
-            iconP.add(new JLabel(createTrainIcon()), BorderLayout.WEST);
+		        // 7) Mở form Hóa Đơn
+		        JFrame f = new JFrame("Hóa Đơn Vé");
+		        f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		        f.setContentPane(new HoaDon());
+		        f.pack();
+		        f.setLocationRelativeTo(this);
+		        f.setVisible(true);
 
-            JPanel textP = new JPanel(new GridLayout(2,1));
-            textP.setOpaque(false);
-            textP.add(lblTitle);
-            textP.add(placeholderLabel);
+		    } catch (Exception ex) {
+		        ex.printStackTrace();
+		        JOptionPane.showMessageDialog(this,
+		            "Lỗi khi lưu vé: " + ex.getMessage(),
+		            "Lỗi", JOptionPane.ERROR_MESSAGE
+		        );
+		    }
+		}
 
-            panel.add(iconP, BorderLayout.WEST);
-            panel.add(textP, BorderLayout.CENTER);
 
-            panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            panel.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    // TODO: hiện danh sách ga, sau đó:
-                    // placeholderLabel.setText(tênGaChọn);
-                }
-                @Override public void mouseEntered(MouseEvent e) { panel.setBackground(new Color(245,245,245)); }
-                @Override public void mouseExited(MouseEvent e)  { panel.setBackground(Color.WHITE); }
-            });
+		// Helper lấy Ngày đi và Giờ đi/Giờ đến từ DB (giữ nguyên logic cũ)
+		private String getNgayDiFromDatabase(String maTau) {
+			String sql = "SELECT TOP 1 ngayDi FROM ChuyenTau WHERE maTau = ?";
+			try (Connection conn = ConnectDB.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.setString(1, maTau);
+				try (ResultSet rs = ps.executeQuery()) {
+					if (rs.next()) {
+						Date d = rs.getDate("ngayDi");
+						return new SimpleDateFormat("dd/MM/yyyy").format(d);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			// Nếu không tìm thấy vẫn trả về giá trị mặc định, ví dụ "??:??" hoặc null
+			return "";
+		}
 
-            return panel;
-        }
+		private String[] getGioDiGioDenFromDatabase(String maTau) {
+			String[] result = { "??:??", "??:??" };
+			String sql = "SELECT TOP 1 gioKhoiHanh, gioDen FROM ChuyenTau WHERE maTau = ?";
+			try (Connection conn = ConnectDB.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.setString(1, maTau);
+				try (ResultSet rs = ps.executeQuery()) {
+					if (rs.next()) {
+						Time gioDi = rs.getTime("gioKhoiHanh");
+						Time gioDen = rs.getTime("gioDen");
+						SimpleDateFormat fmt = new SimpleDateFormat("HH:mm");
+						result[0] = (gioDi != null) ? fmt.format(gioDi) : "??:??";
+						result[1] = (gioDen != null) ? fmt.format(gioDen) : "??:??";
+					}
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			return result;
+		}
 
-        private JPanel createPassengerPanel() {
-            JPanel panel = new JPanel(new BorderLayout(5,5));
-            panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220,220,220),1,true),
-                BorderFactory.createEmptyBorder(10,10,10,10)
-            ));
-            panel.setBackground(Color.WHITE);
-
-            JLabel lblTitle = new JLabel("Số lượng vé");
-            lblTitle.setFont(new Font("Arial", Font.PLAIN, 12));
-            lblTitle.setForeground(Color.GRAY);
-
-            JLabel lblQty = new JLabel("1 vé");
-            lblQty.setFont(new Font("Arial", Font.PLAIN, 14));
-
-            JPanel iconP = new JPanel(new BorderLayout());
-            iconP.setOpaque(false);
-            iconP.add(new JLabel(createPersonIcon()), BorderLayout.WEST);
-
-            JPanel textP = new JPanel(new GridLayout(2,1));
-            textP.setOpaque(false);
-            textP.add(lblTitle);
-            textP.add(lblQty);
-
-            panel.add(iconP, BorderLayout.WEST);
-            panel.add(textP, BorderLayout.CENTER);
-
-            panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            panel.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    String[] opts = {"1 vé","2 vé","3 vé","4 vé","5 vé"};
-                    String sel = (String) JOptionPane.showInputDialog(
-                        panel, "Chọn số lượng vé:", "Số lượng vé",
-                        JOptionPane.QUESTION_MESSAGE, null, opts, opts[0]
-                    );
-                    if (sel != null) lblQty.setText(sel);
-                }
-                @Override public void mouseEntered(MouseEvent e) { panel.setBackground(new Color(245,245,245)); }
-                @Override public void mouseExited(MouseEvent e)  { panel.setBackground(Color.WHITE); }
-            });
-
-            return panel;
-        }
-
-        private JPanel createDepartureDatePanel() {
-            JPanel panel = new JPanel(new BorderLayout(5,5));
-            panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220,220,220),1,true),
-                BorderFactory.createEmptyBorder(10,10,10,10)
-            ));
-            panel.setBackground(Color.WHITE);
-
-            departureDateChooser = new JDateChooser(new Date());
-            departureDateChooser.setDateFormatString("dd/MM/yyyy");
-            departureDateChooser.setOpaque(false);
-
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(departureDateChooser.getDate());
-            int d = cal.get(Calendar.DAY_OF_MONTH), m = cal.get(Calendar.MONTH)+1;
-
-            departureDateLabel = new JLabel(d + " tháng " + m);
-            departureDateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-            departureDayLabel  = new JLabel(dayFormat.format(departureDateChooser.getDate()));
-            departureDayLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            departureDayLabel.setForeground(Color.GRAY);
-
-            JPanel iconP = new JPanel(new BorderLayout());
-            iconP.setOpaque(false);
-            iconP.add(new JLabel(createCalendarIcon()), BorderLayout.WEST);
-
-            JPanel textP = new JPanel(new GridLayout(2,1));
-            textP.setOpaque(false);
-            textP.add(departureDateLabel);
-            textP.add(departureDayLabel);
-
-            panel.add(iconP, BorderLayout.WEST);
-            panel.add(textP, BorderLayout.CENTER);
-
-            panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            panel.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(panel), "Chọn ngày đi", true);
-                    JDateChooser chooser = new JDateChooser(departureDateChooser.getDate());
-                    chooser.setPreferredSize(new Dimension(200, 30));
-                    JButton ok = new JButton("Chọn");
-                    ok.addActionListener(ae -> {
-                        departureDateChooser.setDate(chooser.getDate());
-                        Calendar c2 = Calendar.getInstance();
-                        c2.setTime(chooser.getDate());
-                        departureDateLabel.setText(c2.get(Calendar.DAY_OF_MONTH) + " tháng " + (c2.get(Calendar.MONTH) + 1));
-                        departureDayLabel.setText(dayFormat.format(chooser.getDate()));
-                        dlg.dispose();
-                    });
-                    JPanel btnP = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-                    btnP.add(ok);
-                    JPanel cnt = new JPanel(new BorderLayout(10,10));
-                    cnt.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-                    cnt.add(chooser, BorderLayout.CENTER);
-                    cnt.add(btnP, BorderLayout.SOUTH);
-                    dlg.add(cnt);
-                    dlg.pack();
-                    dlg.setLocationRelativeTo(panel);
-                    dlg.setVisible(true);
-                }
-                @Override public void mouseEntered(MouseEvent e) { panel.setBackground(new Color(245,245,245)); }
-                @Override public void mouseExited(MouseEvent e)  { panel.setBackground(Color.WHITE); }
-            });
-
-            return panel;
-        }
-
-        private JPanel createReturnDatePanel() {
-            JPanel panel = new JPanel(new BorderLayout(5,5));
-            panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220,220,220),1,true),
-                BorderFactory.createEmptyBorder(10,10,10,10)
-            ));
-            panel.setBackground(Color.WHITE);
-
-            Calendar cal = Calendar.getInstance();
-            cal.add(Calendar.DAY_OF_MONTH, 7);
-            returnDateChooser = new JDateChooser(cal.getTime());
-            returnDateChooser.setDateFormatString("dd/MM/yyyy");
-            returnDateChooser.setOpaque(false);
-
-            returnDateLabel = new JLabel("Chọn nếu mua vé về");
-            returnDateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-
-            JPanel iconP = new JPanel(new BorderLayout());
-            iconP.setOpaque(false);
-            iconP.add(new JLabel(createCalendarIcon()), BorderLayout.WEST);
-
-            JPanel textP = new JPanel(new GridLayout(2,1));
-            textP.setOpaque(false);
-            textP.add(new JLabel("Ngày về (Khứ hồi)"));
-            textP.add(returnDateLabel);
-
-            panel.add(iconP, BorderLayout.WEST);
-            panel.add(textP, BorderLayout.CENTER);
-
-            panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            panel.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    if (!returnDateChooser.isEnabled()) return;
-                    JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(panel), "Chọn ngày về", true);
-                    JDateChooser chooser = new JDateChooser(returnDateChooser.getDate());
-                    chooser.setPreferredSize(new Dimension(200, 30));
-                    JButton ok = new JButton("Chọn");
-                    ok.addActionListener(ae -> {
-                        returnDateChooser.setDate(chooser.getDate());
-                        Calendar c2 = Calendar.getInstance();
-                        c2.setTime(chooser.getDate());
-                        returnDateLabel.setText(c2.get(Calendar.DAY_OF_MONTH) + " tháng " + (c2.get(Calendar.MONTH) + 1));
-                        dlg.dispose();
-                    });
-                    JPanel btnP = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-                    btnP.add(ok);
-                    JPanel cnt = new JPanel(new BorderLayout(10,10));
-                    cnt.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-                    cnt.add(chooser, BorderLayout.CENTER);
-                    cnt.add(btnP, BorderLayout.SOUTH);
-                    dlg.add(cnt);
-                    dlg.pack();
-                    dlg.setLocationRelativeTo(panel);
-                    dlg.setVisible(true);
-                }
-                @Override public void mouseEntered(MouseEvent e) {
-                    if (returnDateChooser.isEnabled()) panel.setBackground(new Color(245,245,245));
-                }
-                @Override public void mouseExited(MouseEvent e)  { panel.setBackground(Color.WHITE); }
-            });
-
-            return panel;
-        }
-
-        // Ví dụ icon mặc định
-        private Icon createTrainIcon()   { return UIManager.getIcon("FileView.fileIcon"); }
-        private Icon createPersonIcon()  { return UIManager.getIcon("FileView.directoryIcon"); }
-        private Icon createCalendarIcon(){ return UIManager.getIcon("FileChooser.homeFolderIcon"); }
-    }
+	}
 }

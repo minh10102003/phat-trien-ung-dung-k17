@@ -4,9 +4,9 @@ public class Ghe {
     private String maGhe;
     private String cho;
     private LoaiGhe loaiGhe;
-    private Toa toa;
+    private ToaEntity toa;
     
-	public Ghe(String maGhe, String cho, LoaiGhe loaiGhe, Toa toa) {
+	public Ghe(String maGhe, String cho, LoaiGhe loaiGhe, ToaEntity toa) {
 		super();
 		this.maGhe = maGhe;
 		this.cho = cho;
@@ -32,10 +32,10 @@ public class Ghe {
 	public void setLoaiGhe(LoaiGhe loaiGhe) {
 		this.loaiGhe = loaiGhe;
 	}
-	public Toa getToa() {
+	public ToaEntity getToa() {
 		return toa;
 	}
-	public void setToa(Toa toa) {
+	public void setToa(ToaEntity toa) {
 		this.toa = toa;
 	}
 }

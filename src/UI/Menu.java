@@ -18,6 +18,13 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
+import com.toedter.calendar.JDateChooser;
+
+import DAO.DAO_ChuyenTau;
+import DAO.DAO_Ga;
+import DAO.DAO_Tau;
+import entity.TauEntity;
+import UI.Tau;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
@@ -25,6 +32,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.sql.Date;
 
 public class Menu extends JFrame {
 	private JPanel sidebar;
@@ -109,15 +120,26 @@ public class Menu extends JFrame {
 		// Màn hình "Hoa don"
 		HoaDon hoaDonPanel = new HoaDon();
 		mainContent.add(hoaDonPanel, "HoaDon");
+		ThongKe thongKePanel = new ThongKe();
+		mainContent.add(thongKePanel, "ThongKe");
 
 		// Màn hình "Vé tàu"
-		VeTau DatVePanel = new VeTau();
-		mainContent.add(new VeTau.DatVePanel(), "VeTau");
- 
+		JPanel vePanel = new JPanel(new BorderLayout());
+
+		// Form đặt vé lên toàn bộ vùng chính (khởi tạo với 7 tham số)
+		vePanel.add(new VeTau.DatVePanel(null, // maTau chưa chọn
+				null, // gioDi chưa có
+				null, // gioDen chưa có
+				null, // ngayDi chưa có
+				"", // cho (chuỗi trống)
+				1, // soLuongVe mặc định
+				"Một chiều" // loaiVe mặc định
+		), BorderLayout.CENTER);
+
+		mainContent.add(vePanel, "VeTau");
+
 		// 2. Định nghĩa font dùng chung cho popup menu
 		Font menuFont = new Font("Roboto", Font.BOLD, 14);
-
-		
 
 		// 4. Các nút điều hướng bên sidebar
 		String[] buttonNames = { "Trang chủ", "Vé tàu", "Tàu", "Hóa đơn", "Nhân viên", "Thống kê", "Đăng xuất" };
@@ -221,36 +243,45 @@ public class Menu extends JFrame {
 			// Lưu button vào map
 			navButtons.put(btnName, button);
 
+			if (btnName.equals("Đăng xuất")) {
+				button.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+						new DangNhap().setVisible(true);
+					}
+				});
+			}
+
 			// Xử lý click
 			button.addActionListener(e -> {
 				// 1) Show đúng card
 				switch (btnName) {
-					case "Trang chủ":
-						cardLayout.show(mainContent, "TrangChu");
-						break;
-					case "Tàu":
-						cardLayout.show(mainContent, "Tau");
-						break;
-					case "Hóa đơn":
-						cardLayout.show(mainContent, "HoaDon");
-						break;
-					case "Nhân viên":
-						cardLayout.show(mainContent, "NhanVien");
-						break;
-					case "Vé tàu":
-						cardLayout.show(mainContent, "VeTau"); 
-						break;
-					case "Thống kê":
-						cardLayout.show(mainContent, "ThongKe");
-						break;
-					case "Đăng xuất":
-						// TODO: xử lý logout tại đây
-						return;
+				case "Trang chủ":
+					cardLayout.show(mainContent, "TrangChu");
+					break;
+				case "Tàu":
+					cardLayout.show(mainContent, "Tau");
+					break;
+				case "Hóa đơn":
+					cardLayout.show(mainContent, "HoaDon");
+					break;
+				case "Nhân viên":
+					cardLayout.show(mainContent, "NhanVien");
+					break;
+				case "Vé tàu":
+					cardLayout.show(mainContent, "VeTau");
+					break;
+				case "Thống kê":
+					cardLayout.show(mainContent, "ThongKe");
+					break;
+				case "Đăng xuất":
+					// TODO: xử lý logout tại đây
+					return;
 				}
 				// 2) Update navButtons
 				updateNavButtons(btnName);
 			});
-
 
 			// Thêm sidebar vào frame: cột 0, chiếm toàn bộ chiều cao (gridheight = 2)
 			gbc.gridx = 0;
@@ -270,6 +301,9 @@ public class Menu extends JFrame {
 		}
 	}
 
+	/**
+	 * Loai ve
+	 */
 	/** Enable tất cả nút, sau đó disable đúng nút activeKey */
 	private void updateNavButtons(String activeKey) {
 		for (Map.Entry<String, JButton> e : navButtons.entrySet()) {
@@ -320,37 +354,37 @@ public class Menu extends JFrame {
 		gbc.gridheight = 1;
 		gbc.weightx = 1.0;
 		gbc.weighty = 0.8; // 60% không gian dọc
-		
+
 		// Panel dưới (GIF), chiếm cả 2 cột
-        JPanel bottomPanel = createBottom();
-        gbc.gridx = 0; gbc.gridy = 1;
-        gbc.gridwidth = 2; gbc.gridheight = 1;
-        gbc.weightx = 1.0; gbc.weighty = 0.8;
-        homePanel.add(bottomPanel, gbc);
+		JPanel bottomPanel = createBottom();
+		gbc.gridx = 0;
+		gbc.gridy = 1;
+		gbc.gridwidth = 2;
+		gbc.gridheight = 1;
+		gbc.weightx = 1.0;
+		gbc.weighty = 0.8;
+		homePanel.add(bottomPanel, gbc);
 
 		return homePanel;
 	}
 
 	private JPanel createBottom() {
-	    // Load GIF
-	    ImageIcon gifIcon = new ImageIcon("src/images/background.gif");
-	    Image gifImage = gifIcon.getImage();
+		// Load GIF
+		ImageIcon gifIcon = new ImageIcon("src/images/background.gif");
+		Image gifImage = gifIcon.getImage();
 
-	    // Custom panel để vẽ GIF full size
-	    JPanel panel = new JPanel() {
-	        @Override
-	        protected void paintComponent(Graphics g) {
-	            super.paintComponent(g);
-	            // Vẽ GIF, scale để vừa kích thước panel
-	            g.drawImage(
-	                gifImage,
-	                0, 0, getWidth(), getHeight(),  // vẽ full panel
-	                this
-	            );
-	        }
-	    };
-	    panel.setLayout(new BorderLayout());
-	    return panel;
+		// Custom panel để vẽ GIF full size
+		JPanel panel = new JPanel() {
+			@Override
+			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				// Vẽ GIF, scale để vừa kích thước panel
+				g.drawImage(gifImage, 0, 0, getWidth(), getHeight(), // vẽ full panel
+						this);
+			}
+		};
+		panel.setLayout(new BorderLayout());
+		return panel;
 	}
 
 	/**
@@ -449,31 +483,28 @@ public class Menu extends JFrame {
 	/**
 	 * Phương thức tạo panel trên bên trái với thông tin hành trình
 	 */
+	// Đảm bảo bạn đã thêm phương thức getGaMap() trong DAO_Ga
+	// public static Map<String, String> getGaMap() { ... }
+
 	private JPanel createTopLeftPanel() {
 		JPanel panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
 		panel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 2));
 
-		// Tạo font lớn hơn
 		Font largeFont = new Font("Roboto", Font.PLAIN, 14);
-		Font titleFont = new Font("Roboto", Font.BOLD, 16);
 		Font buttonFont = new Font("Roboto", Font.BOLD, 14);
-		Font smallFont = new Font("Roboto", Font.PLAIN, 12);
 
-		// Tạo panel "Thông tin hành trình" với kiểu header mới
 		JPanel infoPanel = new JPanel(new BorderLayout());
 		infoPanel.setBackground(Color.WHITE);
 		infoPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		// Tạo header cho "Thông tin hành trình" giống với "Giỏ vé"
 		JPanel infoHeaderPanel = new JPanel(new BorderLayout());
-		infoHeaderPanel.setBackground(new Color(70, 130, 180)); // Steel Blue color
+		infoHeaderPanel.setBackground(new Color(70, 130, 180));
 		JLabel infoHeaderLabel = new JLabel(" Thông tin hành trình", JLabel.LEFT);
 		infoHeaderLabel.setFont(largeFont);
 		infoHeaderLabel.setForeground(Color.WHITE);
 		infoHeaderPanel.add(infoHeaderLabel, BorderLayout.CENTER);
 
-		// Tạo panel nội dung cho thông tin hành trình
 		JPanel infoContentPanel = new JPanel(new GridBagLayout());
 		infoContentPanel.setBackground(Color.WHITE);
 
@@ -481,31 +512,40 @@ public class Menu extends JFrame {
 		ip.insets = new Insets(5, 5, 5, 5);
 		ip.fill = GridBagConstraints.HORIZONTAL;
 		ip.gridx = 0;
-		ip.weightx = 1.0; // Để các thành phần mở rộng theo chiều ngang
+		ip.weightx = 1.0;
 
-		// Ga đi
+		Map<String, String> gaMap = DAO_Ga.getGaMap();
+		if (gaMap == null || gaMap.isEmpty()) {
+			JOptionPane.showMessageDialog(null, "Không thể tải danh sách ga từ cơ sở dữ liệu!");
+			return new JPanel();
+		}
+
 		ip.gridy = 0;
 		JLabel lblGaDi = new JLabel("Ga đi");
 		lblGaDi.setFont(largeFont);
 		infoContentPanel.add(lblGaDi, ip);
 
 		ip.gridy = 1;
-		JTextField txtGaDi = new JTextField();
-		txtGaDi.setFont(largeFont);
-		infoContentPanel.add(txtGaDi, ip);
+		JComboBox<String> comboGaDi = new JComboBox<>();
+		comboGaDi.setFont(largeFont);
+		for (String tenGa : gaMap.keySet()) {
+			comboGaDi.addItem(tenGa);
+		}
+		infoContentPanel.add(comboGaDi, ip);
 
-		// Ga đến
 		ip.gridy = 2;
 		JLabel lblGaDen = new JLabel("Ga đến");
 		lblGaDen.setFont(largeFont);
 		infoContentPanel.add(lblGaDen, ip);
 
 		ip.gridy = 3;
-		JTextField txtGaDen = new JTextField();
-		txtGaDen.setFont(largeFont);
-		infoContentPanel.add(txtGaDen, ip);
+		JComboBox<String> comboGaDen = new JComboBox<>();
+		comboGaDen.setFont(largeFont);
+		for (String tenGa : gaMap.keySet()) {
+			comboGaDen.addItem(tenGa);
+		}
+		infoContentPanel.add(comboGaDen, ip);
 
-		// Radio một chiều / khứ hồi
 		ip.gridy = 4;
 		JPanel pRadio = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		pRadio.setBackground(Color.WHITE);
@@ -523,62 +563,96 @@ public class Menu extends JFrame {
 		pRadio.add(rbReturn);
 		infoContentPanel.add(pRadio, ip);
 
-		// Ngày đi
-		ip.gridy = 5;
+		ip.gridy = 6;
 		JLabel lblNgayDi = new JLabel("Ngày đi");
 		lblNgayDi.setFont(largeFont);
 		infoContentPanel.add(lblNgayDi, ip);
 
-		ip.gridy = 6;
-		JPanel pNgayDi = new JPanel(new BorderLayout());
-		pNgayDi.setBackground(Color.WHITE);
-		JTextField txtNgayDi = new JTextField();
-		txtNgayDi.setFont(largeFont);
-		JButton btnCal1 = new JButton(new ImageIcon("src/images/calendar.png"));
-		btnCal1.setPreferredSize(new Dimension(30, 30));
-		pNgayDi.add(txtNgayDi, BorderLayout.CENTER);
-		pNgayDi.add(btnCal1, BorderLayout.EAST);
-		infoContentPanel.add(pNgayDi, ip);
-
-		// Ngày về
 		ip.gridy = 7;
+		JDateChooser dateChooserNgayDi = new JDateChooser();
+		dateChooserNgayDi.setFont(largeFont);
+		dateChooserNgayDi.setDateFormatString("dd/MM/yyyy");
+		infoContentPanel.add(dateChooserNgayDi, ip);
+
+		ip.gridy = 8;
 		JLabel lblNgayVe = new JLabel("Ngày về");
 		lblNgayVe.setFont(largeFont);
 		infoContentPanel.add(lblNgayVe, ip);
 
-		ip.gridy = 8;
-		JPanel pNgayVe = new JPanel(new BorderLayout());
-		pNgayVe.setBackground(Color.WHITE);
-		JTextField txtNgayVe = new JTextField();
-		txtNgayVe.setFont(largeFont);
-		JButton btnCal2 = new JButton(new ImageIcon("src/images/calendar.png"));
-		btnCal2.setPreferredSize(new Dimension(30, 30));
-		pNgayVe.add(txtNgayVe, BorderLayout.CENTER);
-		pNgayVe.add(btnCal2, BorderLayout.EAST);
-		infoContentPanel.add(pNgayVe, ip);
-
-		// Nút Tìm kiếm
 		ip.gridy = 9;
+		JDateChooser dateChooserNgayVe = new JDateChooser();
+		dateChooserNgayVe.setFont(largeFont);
+		dateChooserNgayVe.setDateFormatString("dd/MM/yyyy");
+		infoContentPanel.add(dateChooserNgayVe, ip);
+
+		// Thiết lập ẩn mặc định khi chọn "Một chiều"
+		lblNgayVe.setVisible(false);
+		dateChooserNgayVe.setVisible(false);
+
+		// Xử lý sự kiện RadioButton
+		rbOne.addActionListener(e -> {
+			lblNgayVe.setVisible(false);
+			dateChooserNgayVe.setVisible(false);
+			infoContentPanel.revalidate();
+			infoContentPanel.repaint();
+		});
+
+		rbReturn.addActionListener(e -> {
+			lblNgayVe.setVisible(true);
+			dateChooserNgayVe.setVisible(true);
+			infoContentPanel.revalidate();
+			infoContentPanel.repaint();
+		});
+
+		ip.gridy = 10;
 		JButton btnTim = new JButton("Tìm kiếm");
 		btnTim.setFont(buttonFont);
 		btnTim.setBackground(new Color(70, 130, 180));
 		btnTim.setForeground(Color.WHITE);
 		infoContentPanel.add(btnTim, ip);
-
 		btnTim.setOpaque(true);
 		btnTim.setContentAreaFilled(true);
 		btnTim.setBorderPainted(false);
 
-		// Thêm header và content vào infoPanel
+		btnTim.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String tenGaDi = (String) comboGaDi.getSelectedItem();
+				String tenGaDen = (String) comboGaDen.getSelectedItem();
+				String maGaDi = gaMap.get(tenGaDi);
+				String maGaDen = gaMap.get(tenGaDen);
+				java.util.Date ngayDi = dateChooserNgayDi.getDate();
+				java.util.Date ngayVe = dateChooserNgayVe.getDate();
+
+				if (maGaDi == null || maGaDen == null || ngayDi == null || ngayVe == null) {
+					JOptionPane.showMessageDialog(null, "Vui lòng nhập đầy đủ thông tin.");
+					return;
+				}
+
+				List<TauEntity> danhSach = DAO_Tau.layDanhSachChuyenTau(maGaDi, maGaDen, ngayDi);
+
+				if (!danhSach.isEmpty()) {
+					JOptionPane.showMessageDialog(null, "Tìm thấy " + danhSach.size() + " chuyến tàu!");
+
+					// Tạo panel Tau mới với dữ liệu thực tế
+					Tau tauPanel = new Tau(danhSach);
+
+					// Xóa panel cũ nếu cần, hoặc ghi đè
+					mainContent.add(tauPanel, "Tau");
+					cardLayout.show(mainContent, "Tau");
+				} else {
+					JOptionPane.showMessageDialog(null, "Không tìm thấy chuyến tàu phù hợp.");
+				}
+
+			}
+		});
+
 		infoPanel.add(infoHeaderPanel, BorderLayout.NORTH);
 		infoPanel.add(infoContentPanel, BorderLayout.CENTER);
 
-		// Thêm các panel vào panel chính
 		GridBagConstraints mainGbc = new GridBagConstraints();
 		mainGbc.fill = GridBagConstraints.BOTH;
 		mainGbc.insets = new Insets(5, 5, 5, 5);
-
-		// Thêm infoPanel (chiếm khoảng 60% chiều ngang)
 		mainGbc.gridx = 0;
 		mainGbc.gridy = 0;
 		mainGbc.weightx = 0.5;
@@ -668,4 +742,13 @@ public class Menu extends JFrame {
 
 		return card;
 	}
+
+	public CardLayout getCardLayout() {
+		return cardLayout;
+	}
+
+	public JPanel getMainContentPanel() {
+		return mainContent;
+	}
+
 }

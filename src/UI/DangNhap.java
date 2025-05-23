@@ -144,10 +144,12 @@ public class DangNhap extends JFrame {
 	                // Ẩn màn hình đăng nhập
 	                dispose();
 
-	                // Hiển thị cửa sổ loading có video bằng class tiện ích
-	                new VideoLoadingScreen("E:\\Train (1).mp4");
+	                // Loại bỏ hoặc bình luận đoạn mã hiển thị video
+	                //new VideoLoadingScreen("src/images/Train (1).mp4");
 
-
+	                // Mở cửa sổ chính sau khi đăng nhập thành công
+	                // Ví dụ:
+	                new Menu().setVisible(true); // Mở màn hình chính của ứng dụng
 	            } else {
 	                JOptionPane.showMessageDialog(DangNhap.this,
 	                        "Tên đăng nhập, mật khẩu hoặc vai trò không đúng!",
@@ -157,16 +159,20 @@ public class DangNhap extends JFrame {
 	    });
 
 	    registerButton.addActionListener(e -> {
-	        System.out.println("Registration button clicked");
+	        new DangKy().setVisible(true);
 	    });
+	    
 
 	    forgotPasswordLabel.addMouseListener(new MouseAdapter() {
 	        @Override
 	        public void mouseClicked(MouseEvent e) {
-	            System.out.println("Forgot password clicked");
+	            SwingUtilities.invokeLater(() -> {
+	            	new QuenMatKhau().setVisible(true);
+	            });
 	        }
 	    });
 	}
+
 
 
 	private boolean kiemTraDangNhap(String username, String password, String role) {

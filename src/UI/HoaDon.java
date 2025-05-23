@@ -1,10 +1,12 @@
 package UI;
 
+import DAO.DAO_Ve;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.List;
 
 public class HoaDon extends JPanel {
     private JTable tableHoaDon;
@@ -17,55 +19,17 @@ public class HoaDon extends JPanel {
         lblTitle.setFont(new Font("Arial", Font.BOLD, 20));
         add(lblTitle, BorderLayout.NORTH);
 
-        JPanel panelButtons = new JPanel();
-        JButton btnThem = new JButton("Thêm");
-        btnThem.setForeground(new Color(255, 255, 255));
-        btnThem.setBackground(new Color(0, 64, 128));
-        btnThem.setOpaque(true);
-        btnThem.setContentAreaFilled(true);
-        btnThem.setBorderPainted(false);
-        JButton btnXoa = new JButton("Xóa");
-        btnXoa.setForeground(new Color(255, 255, 255));
-        btnXoa.setBackground(new Color(0, 64, 128));
-        btnXoa.setOpaque(true);
-        btnXoa.setContentAreaFilled(true);
-        btnXoa.setBorderPainted(false);
-        JButton btnSua = new JButton("Sửa");
-        btnSua.setForeground(new Color(255, 255, 255));
-        btnSua.setBackground(new Color(0, 64, 128));
-        btnSua.setOpaque(true);
-        btnSua.setContentAreaFilled(true);
-        btnSua.setBorderPainted(false);
-        panelButtons.add(btnThem);
-        panelButtons.add(btnXoa);
-        panelButtons.add(btnSua);
-        add(panelButtons, BorderLayout.SOUTH);
-
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setBorder(new TitledBorder("Danh sách hóa đơn"));
         add(scrollPane, BorderLayout.CENTER);
 
         model = new DefaultTableModel(
-            new Object[][] {},
-            new String[] { "Mã HĐ", "Ngày lập", "Khách hàng", "Tổng tiền", "Chi tiết" }
+            new String[]{"Mã HĐ", "Ngày lập", "Khách hàng", "Tổng tiền", "Chi tiết"}, 0
         );
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream("src/data/hoadon.txt"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] rowData = line.split(",");
-                for (int i = 0; i < rowData.length; i++) {
-                    rowData[i] = rowData[i].trim();
-                }
-                model.addRow(new Object[]{ rowData[0], rowData[1], rowData[2], rowData[3], "Xem chi tiết" });
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
         tableHoaDon = new JTable(model);
         scrollPane.setViewportView(tableHoaDon);
+
+        loadHoaDonFromDB();
 
         tableHoaDon.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -73,37 +37,39 @@ public class HoaDon extends JPanel {
                 int col = tableHoaDon.columnAtPoint(evt.getPoint());
                 if (col == 4 && row >= 0) {
                     String maHD = (String) model.getValueAt(row, 0);
-                    ChiTietHoaDon chiTiet = new ChiTietHoaDon(maHD, HoaDon.this, row); // Truyền HoaDon và chỉ số hàng
+                    // Mở chi tiết hóa đơn (có thể tái sử dụng ChiTietHoaDon)
+                    ChiTietHoaDon chiTiet = new ChiTietHoaDon(maHD, HoaDon.this, row);
                     chiTiet.setVisible(true);
                 }
             }
         });
-
-        btnThem.addActionListener(e -> themHoaDon());
-        btnXoa.addActionListener(e -> xoaHoaDon());
-        btnSua.addActionListener(e -> suaHoaDon());
     }
 
-    private void themHoaDon() {
-        model.addRow(new Object[]{ "HDXXXX", "Ngày mới", "Khách hàng mới", "0", "Xem chi tiết" });
-    }
-
-    private void xoaHoaDon() {
-        int selectedRow = tableHoaDon.getSelectedRow();
-        if (selectedRow >= 0) {
-            model.removeRow(selectedRow);
+    private void loadHoaDonFromDB() {
+        try {
+            List<DAO_Ve.HoaDonInfo> list = DAO_Ve.getAllHoaDon();
+            SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+            for (DAO_Ve.HoaDonInfo hd : list) {
+                model.addRow(new Object[]{
+                    hd.getMaVe(), df.format(hd.getNgayLap()), hd.getTenKhach(),
+                    String.format("%.2f", hd.getTongTien()), "Xem chi tiết"
+                });
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Lỗi tải hóa đơn: " + ex.getMessage(),
+                "Lỗi", JOptionPane.ERROR_MESSAGE
+            );
         }
     }
-
-    private void suaHoaDon() {
-        int selectedRow = tableHoaDon.getSelectedRow();
-        if (selectedRow >= 0) {
-            model.setValueAt("Sửa đổi", selectedRow, 1);
-        }
-    }
-
-    // Phương thức để cập nhật tổng tiền trong bảng
-    public void updateTotalAmount(int row, double amount) {
-        model.setValueAt(String.format("%.2f", amount), row, 3);
+    /**
+     * Cập nhật giá trị cột "Tổng tiền" tại dòng đã chọn.
+     * @param rowIndex chỉ số dòng trong bảng
+     * @param amount giá trị tổng tiền mới
+     */
+    public void updateTotalAmount(int rowIndex, double amount) {
+        // cột Tổng tiền là cột index 3
+        model.setValueAt(String.format("%.2f", amount), rowIndex, 3);
     }
 }
