@@ -2,6 +2,7 @@ package UI;
 
 import javax.swing.*;
 
+import DAO.DAO_TaiKhoan;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Group;
@@ -9,12 +10,17 @@ import javafx.scene.Scene;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import util.Session;
 import video.VideoLoadingScreen;
 
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.sql.*;
+
+import UI.Menu;
+import util.Session;
+import javax.swing.SwingUtilities;
 
 public class DangNhap extends JFrame {
 	private JTextField usernameField;
@@ -23,6 +29,7 @@ public class DangNhap extends JFrame {
 	private JLabel forgotPasswordLabel;
 	private JCheckBox adminCheckBox, employeeCheckBox;
 	private ButtonGroup roleGroup;
+	private JComboBox<String> roleBox;
 
 	public DangNhap() {
 		setTitle("Login");
@@ -128,47 +135,77 @@ public class DangNhap extends JFrame {
 		setContentPane(mainPanel);
 		addEventListeners();
 	}
+	
+//	private void doLogin() {
+//	    String username = usernameField.getText().trim();
+//	    String password = new String(passwordField.getPassword());
+//	    String role = roleBox.getSelectedItem().toString();
+//
+//	    if (new DAO_TaiKhoan().kiemTraDangNhap(username, password, role)) {
+//	        // 1) Set session
+//	        Session.currentUsername = username;
+//
+//	        // 2) Mở đúng giao diện chính
+//	        SwingUtilities.invokeLater(() -> {
+//	            new Menu().setVisible(true);
+//	        });
+//
+//	        // 3) Đóng login
+//	        this.dispose();
+//	    } else {
+//	        JOptionPane.showMessageDialog(this, "Đăng nhập thất bại", "Lỗi", JOptionPane.ERROR_MESSAGE);
+//	    }
+//	}
+	
+	
 
 	private void addEventListeners() {
 	    loginButton.addActionListener(e -> {
 	        String username = usernameField.getText().trim();
 	        String password = new String(passwordField.getPassword()).trim();
-	        String role = adminCheckBox.isSelected() ? "admin" : "nhanvien";
+	        String role     = adminCheckBox.isSelected() ? "admin" : "nhanvien";
 
 	        if (username.isEmpty() || password.isEmpty()) {
-	            JOptionPane.showMessageDialog(DangNhap.this,
-	                    "Vui lòng nhập đầy đủ thông tin đăng nhập",
-	                    "Lỗi đăng nhập", JOptionPane.ERROR_MESSAGE);
+	            JOptionPane.showMessageDialog(
+	                DangNhap.this,
+	                "Vui lòng nhập đầy đủ thông tin đăng nhập",
+	                "Lỗi đăng nhập",
+	                JOptionPane.ERROR_MESSAGE
+	            );
+	            return;
+	        }
+
+	        // Kiểm tra credentials
+	        if (kiemTraDangNhap(username, password, role)) {
+	            // ==== MẤU CHỐT: GÁN SESSION NGAY TẠI ĐÂY ====
+	            Session.currentUsername = username;
+	            Session.currentRole     = role;
+
+	            // Đóng login
+	            dispose();
+
+	            // Mở Menu
+	            SwingUtilities.invokeLater(() -> {
+	                new Menu().setVisible(true);
+	            });
 	        } else {
-	            if (kiemTraDangNhap(username, password, role)) {
-	                // Ẩn màn hình đăng nhập
-	                dispose();
-
-	                // Loại bỏ hoặc bình luận đoạn mã hiển thị video
-	                //new VideoLoadingScreen("src/images/Train (1).mp4");
-
-	                // Mở cửa sổ chính sau khi đăng nhập thành công
-	                // Ví dụ:
-	                new Menu().setVisible(true); // Mở màn hình chính của ứng dụng
-	            } else {
-	                JOptionPane.showMessageDialog(DangNhap.this,
-	                        "Tên đăng nhập, mật khẩu hoặc vai trò không đúng!",
-	                        "Lỗi đăng nhập", JOptionPane.ERROR_MESSAGE);
-	            }
+	            JOptionPane.showMessageDialog(
+	                DangNhap.this,
+	                "Tên đăng nhập, mật khẩu hoặc vai trò không đúng!",
+	                "Lỗi đăng nhập",
+	                JOptionPane.ERROR_MESSAGE
+	            );
 	        }
 	    });
 
 	    registerButton.addActionListener(e -> {
 	        new DangKy().setVisible(true);
 	    });
-	    
 
 	    forgotPasswordLabel.addMouseListener(new MouseAdapter() {
 	        @Override
 	        public void mouseClicked(MouseEvent e) {
-	            SwingUtilities.invokeLater(() -> {
-	            	new QuenMatKhau().setVisible(true);
-	            });
+	            SwingUtilities.invokeLater(() -> new QuenMatKhau().setVisible(true));
 	        }
 	    });
 	}

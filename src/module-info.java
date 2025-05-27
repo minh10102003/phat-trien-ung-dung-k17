@@ -13,4 +13,7 @@ module PTUD_N13 {
 	requires javafx.media;
 	requires javafx.controls;
 	requires jfreechart;
+	requires org.apache.pdfbox;
+	requires com.google.zxing;
+	requires com.google.zxing.javase;
 }

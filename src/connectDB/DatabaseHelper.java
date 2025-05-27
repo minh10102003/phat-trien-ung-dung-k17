@@ -12,7 +12,7 @@ public class DatabaseHelper {
     private static final String USER = "sa";
     private static final String PASS = "sapassword";
 
-    private static Connection getConnection() {
+    public static Connection getConnection() {
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             return DriverManager.getConnection(URL, USER, PASS);
