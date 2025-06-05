@@ -1,9 +1,9 @@
-Ứng dụng Quản Lý Vé Tàu Lửa Tại Nhà Ga
+# Ứng dụng Quản Lý Vé Tàu Lửa Tại Nhà Ga
 
-Giới thiệu
+## Giới thiệu
 Đây là một ứng dụng Java được phát triển trong khuôn khổ môn học Phát triển ứng dụng, nhằm hỗ trợ việc quản lý quy trình bán vé tàu tại nhà ga. Ứng dụng được xây dựng dưới dạng ứng dụng desktop sử dụng Java Swing, kết nối với cơ sở dữ liệu SQL Server, cho phép người dùng tìm kiếm chuyến tàu, đặt vé, và quản lý thông tin liên quan đến nhân viên, tài khoản, hóa đơn và vé đã đặt.
 
-Tính năng chính
+### Tính năng chính
 1. Tìm kiếm chuyến tàu
 Hỗ trợ tìm kiếm các chuyến tàu theo ngày khởi hành, ga đi, ga đến.
 
@@ -37,14 +37,14 @@ Hỗ trợ lọc, tìm kiếm vé theo ngày, chuyến, hoặc khách hàng.
 7. In vé tàu
 Sau khi đặt vé thành công, hệ thống hỗ trợ in vé với đầy đủ thông tin chuyến đi.
 
-Công nghệ sử dụng
+### Công nghệ sử dụng
 Ngôn ngữ lập trình: Java
 
-Giao diện người dùng: Java Swing
+### Giao diện người dùng: Java Swing
 
-Cơ sở dữ liệu: SQL Server
+### Cơ sở dữ liệu: SQL Server
 
-Kiểu kết nối: JDBC
+### Kiểu kết nối: JDBC
 
 Cài đặt và sử dụng
 Yêu cầu hệ thống
@@ -54,7 +54,7 @@ SQL Server 2019 hoặc mới hơn
 
 IDE hỗ trợ Java (IntelliJ IDEA, Eclipse, NetBeans, v.v.)
 
-Hướng dẫn cài đặt
+### Hướng dẫn cài đặt
 Clone repository về máy:
 git clone https://github.com/minh10102003/phat-trien-ung-dung-k17
 
@@ -68,10 +68,9 @@ Sử dụng file script .sql đi kèm để tạo bảng và dữ liệu mẫu (
 
 Chạy chương trình từ file Main.java.
 
-Nhóm thực hiện
-Tên đề tài: Quản lý vé tàu lửa tại nhà ga
+### Tên đề tài: Quản lý vé tàu lửa tại nhà ga
 
-Môn học: Phát triển ứng dụng
+### Môn học: Phát triển ứng dụng
 
 Ghi chú
 Dự án được phát triển với mục đích học tập.
